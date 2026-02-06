@@ -264,7 +264,7 @@ with col_in1:
     selected_idx = tdm_options.index(selected_label_full)
 
 with col_in2:
-    measured_val = st.number_input("血中濃度 (µg/mL)", value=0.0, step=0.1)
+    measured_val = st.number_input("血中濃度 (µg/mL)", value=10.0, step=0.1)
 
 with col_in3:
     target_val = st.number_input("目標値 (µg/mL)", value=15.0, step=1.0)
