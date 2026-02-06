@@ -111,41 +111,69 @@ def fit_parameter_robust(target_conc, target_idx, current_params, weight, events
 st.set_page_config(page_title="VCM TDM Sim", layout="wide")
 st.title("💊 バンコマイシン(VCM) 2週間シミュレーター")
 
-# --- モバイル表示調整用CSS ---
+# --- CSS ---
 st.markdown("""
 <style>
 @media only screen and (max-width: 600px) {
     div[data-testid="stMetricValue"] { font-size: 1.2rem !important; }
-    div[data-testid="stMetricLabel"] { font-size: 0.9rem !important; }
     div[data-testid="stSidebar"] button { padding: 0.2rem 0.5rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
 
+# --- 定数 ---
+DOSE_SLOTS = 6
+
+# --- 自動推奨ロジック ---
+def auto_calc_hd_recommendation():
+    """
+    体重等が変更されたときに推奨投与量を計算してセットする
+    Load: 20 mg/kg, Maint: 10 mg/kg
+    """
+    w = st.session_state.get('weight_input', 60.0)
+    
+    # 推奨計算
+    rec_load = w * 20.0
+    rec_load = round(rec_load / 50) * 50 # 50mg丸め
+    if rec_load > 2000: rec_load = 2000.0 # 安全キャップ
+    
+    rec_maint = w * 10.0
+    rec_maint = round(rec_maint / 50) * 50
+    if rec_maint > 1000: rec_maint = 1000.0
+    
+    # Session State更新
+    st.session_state['dose_1'] = float(rec_load)
+    for i in range(2, DOSE_SLOTS + 1):
+        st.session_state[f'dose_{i}'] = float(rec_maint)
+
 # --- セッションステート初期化 ---
-for i in range(1, 7):
+for i in range(1, DOSE_SLOTS + 1):
     key = f'dose_{i}'
     if key not in st.session_state:
         st.session_state[key] = 1000.0 if i == 1 else 500.0
 
-# --- 連動ロジック付き更新関数 ---
+# --- 連動ロジック (手動操作時) ---
 def update_dose_cascade(target_key, increment):
     new_val = st.session_state[target_key] + increment
     if new_val < 0: new_val = 0.0
     st.session_state[target_key] = new_val
     
-    keys_order = [f'dose_{i}' for i in range(1, 7)]
     try:
-        start_idx = keys_order.index(target_key)
-        for i in range(start_idx + 1, len(keys_order)):
-            next_key = keys_order[i]
-            st.session_state[next_key] = new_val
-    except ValueError:
+        current_idx = int(target_key.split('_')[-1])
+        for i in range(current_idx + 1, DOSE_SLOTS + 1):
+            st.session_state[f'dose_{i}'] = new_val
+    except:
         pass
 
 # --- サイドバー設定 ---
 st.sidebar.header("1. 患者・透析条件")
-weight = st.sidebar.number_input("体重 (kg)", value=60.0, step=1.0)
+
+# keyとon_changeを設定して自動計算をトリガー
+weight = st.sidebar.number_input(
+    "体重 (kg)", 30.0, 150.0, 60.0, 1.0, 
+    key='weight_input', on_change=auto_calc_hd_recommendation
+)
+
 qb = st.sidebar.slider("血流量 Qb (mL/min)", 150, 400, 200, step=10)
 qd = st.sidebar.slider("透析液流量 Qd (mL/min)", 400, 600, 500, step=50)
 hd_hours = st.sidebar.slider("透析時間 (時間)", 3.0, 5.0, 4.0, 0.5)
@@ -165,10 +193,10 @@ hd_pattern = st.sidebar.selectbox("透析パターン", ["月・水・金", "火
 weekdays_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 if hd_pattern == "月・水・金":
     start_options = ["月曜日 (Mon)", "水曜日 (Wed)", "金曜日 (Fri)"]
-    pattern_indices = [0, 2, 4]
+    pattern_indices = [0, 2, 4] # Mon, Wed, Fri
 else:
     start_options = ["火曜日 (Tue)", "木曜日 (Thu)", "土曜日 (Sat)"]
-    pattern_indices = [1, 3, 5]
+    pattern_indices = [1, 3, 5] # Tue, Thu, Sat
 
 start_day_label = st.sidebar.selectbox("開始曜日 (Day 1)", start_options)
 
@@ -186,7 +214,7 @@ hd_labels = []
 current_day_idx = start_day_idx
 cum_days = 0
 
-for i in range(6): 
+for i in range(DOSE_SLOTS): 
     hd_days_offset.append(cum_days)
     label = f"Day {cum_days + 1} ({weekdays_map[current_day_idx]})"
     hd_labels.append(label)
@@ -208,7 +236,7 @@ next_label = f"Day {cum_days + 1} ({weekdays_map[current_day_idx]})"
 # --- 投与スケジュール入力UI (サイドバー) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("投与計画 (50mg調整)")
-st.sidebar.caption("※入力日以降の投与量が自動で連動します")
+st.sidebar.caption("※患者情報を変更すると推奨量が自動入力されます")
 
 def dose_input_row(label, key):
     st.sidebar.markdown(f"**{label}**")
@@ -217,7 +245,7 @@ def dose_input_row(label, key):
     with c2: st.number_input(label, key=key, step=50.0, label_visibility="collapsed")
     with c3: st.button("＋", key=f"inc_{key}", on_click=update_dose_cascade, args=(key, 50), use_container_width=True)
 
-for i in range(6):
+for i in range(DOSE_SLOTS):
     dose_input_row(hd_labels[i], f'dose_{i+1}')
 
 
@@ -243,7 +271,7 @@ def build_events(doses_list, offsets):
             evs.append({'type': 'dose', 'start': t_dose, 'duration': infusion_duration, 'val': doses_list[i]})
     return evs, hd_start_times
 
-current_doses = [st.session_state[f'dose_{i+1}'] for i in range(6)]
+current_doses = [st.session_state[f'dose_{i+1}'] for i in range(DOSE_SLOTS)]
 events_current, hd_times = build_events(current_doses, hd_days_offset)
 t_next_hd = (t_start + hd_days_offset_next * 24) * 60
 hd_times.append(t_next_hd)
@@ -264,7 +292,7 @@ with col_in1:
     selected_idx = tdm_options.index(selected_label_full)
 
 with col_in2:
-    measured_val = st.number_input("血中濃度 (µg/mL)", value=10.0, step=0.1)
+    measured_val = st.number_input("血中濃度 (µg/mL)", value=0.0, step=0.1)
 
 with col_in3:
     target_val = st.number_input("目標値 (µg/mL)", value=15.0, step=1.0)
@@ -327,7 +355,7 @@ if measured_val > 0:
             st.warning("シミュレーション期間内の投与予定は終了しています。")
 
     modified_doses = current_doses.copy()
-    for i in range(start_dose_idx, 6):
+    for i in range(start_dose_idx, DOSE_SLOTS):
         modified_doses[i] = modified_dose
         
     events_modified, _ = build_events(modified_doses, hd_days_offset)
@@ -406,15 +434,11 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# ==========================================
-# 7. メトリクス & 解説
-# ==========================================
+# 7. メトリクス
 if measured_val > 0:
     st.info(f"📊 **解析結果:** 実測値 {measured_val} µg/mL に合わせるため、"
             f"消失半減期を **{fitted_params['T_half_off']:.1f} 時間** "
             f"(初期値 {init_params['T_half_off']} 時間) として計算しました。")
-    if fitted_params['T_half_off'] > 200:
-        st.error("⚠️ 半減期が非常に長く推算されています。蓄積リスクが高いため注意してください。")
 else:
     st.markdown("##### 📅 透析前トラフ予測値 (初期計画)")
     cols = st.columns(3) 
@@ -424,29 +448,17 @@ else:
             val = sim_conc[idx] if idx < len(sim_conc) else 0
             col.metric(hd_labels[i].split(" ")[1], f"{val:.1f}") 
 
-# --- 目標トラフに関する解説 ---
+# 目標トラフ解説
 st.markdown("---")
-with st.expander("📚 目標トラフとMICに関する解説 (Guidelines)", expanded=True):
+with st.expander("📚 目標トラフとMICに関する解説", expanded=True):
     st.markdown("""
-    ### 🎯 目標トラフ濃度 (Target Trough)
+    ### 🎯 推奨投与量（初期設定）
+    * **初回負荷量:** 実体重 × **20 mg/kg**
+    * **維持投与量:** 実体重 × **10 mg/kg** (透析終了ごと)
     
-    VCMの治療目標は **AUC/MIC $\ge$ 400** ですが、実臨床（特に透析患者）ではトラフ濃度が代替指標として用いられます。
+    上記計算式に基づき、体重を入力すると自動的に推奨量がセットされます。
     
-    | 感染症の重症度 | 目標トラフ濃度 | 備考 |
-    | :--- | :--- | :--- |
-    | **通常・軽症** | **10 - 15 µg/mL** | 尿路感染症、蜂窩織炎など |
-    | **重症・複雑性** | **15 - 20 µg/mL** | 肺炎、敗血症、心内膜炎、骨髄炎、MRSA感染症 |
-    
-    ---
-    ### 🦠 MIC (最小発育阻止濃度) との兼ね合い
-    
-    **AUC/MIC $\ge$ 400** を達成できるかどうかが鍵となります。
-    
-    * **MIC $\le$ 1.0 µg/mL の場合:**
-        * 通常の目標トラフ (15-20 µg/mL) で十分なAUCが確保できます。
-    
-    * **MIC = 2.0 µg/mL の場合 (重要):**
-        * 理論上、AUC/MIC $\ge$ 400 を達成するには **AUC $\ge$ 800** が必要になります。
-        * これを達成しようとすると、トラフ濃度を **20 µg/mL 以上** に維持しなければならず、**腎障害や聴覚障害のリスクが著しく増大**します。
-        * 💡 **推奨:** VCMの増量で粘るのではなく、**リネゾリド (LZD) や ダプトマイシン (DAP)** など、他の抗MRSA薬への変更を強く推奨します。
+    ### ⚠️ MIC = 2.0 µg/mL の場合
+    VCMで治療目標(AUC/MIC $\ge$ 400)を達成しようとすると、トラフ濃度を20 µg/mL以上に保つ必要があり、副作用リスクが高まります。
+    他剤（リネゾリド、ダプトマイシンなど）への変更を強く推奨します。
     """)
