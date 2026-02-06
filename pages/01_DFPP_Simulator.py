@@ -36,7 +36,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # タイトル
-st.title("🧮 DFPP Advanced Simulator Ver.36.3 \n💡患者情報を右上>>から入力")
+st.title("🧮 DFPP Advanced Simulator Ver.36.3 \n💡患者情報を左上>>から入力")
 
 # ==========================================
 # ⬅️ サイドバー：入力パラメータ
