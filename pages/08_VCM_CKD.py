@@ -97,10 +97,8 @@ NUM_SLOTS = 14
 # --- 自動計算コールバック関数 ---
 def auto_calc_recommendation():
     """
-    患者情報が変更されたときに呼ばれ、
-    推奨投与量・間隔を計算してsession_stateを更新する
+    患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
     """
-    # 1. パラメータ取得
     w = st.session_state.get('weight_input', 60.0)
     mode = st.session_state.get('input_mode', "年齢・性別・Creから計算")
     
@@ -109,31 +107,25 @@ def auto_calc_recommendation():
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
-        # CCr計算
         val = ((140 - a) * w) / (72 * c)
         ccr_est = val * 0.85 if s == "女性" else val
     else:
         ccr_est = st.session_state.get('egfr_input_val', 45.0)
 
-    # 2. 推奨設計 (Matzkeノモグラム等参考)
-    # 間隔
+    # 推奨設計
     if ccr_est > 60: rec_int = 12
     elif 40 <= ccr_est <= 60: rec_int = 24
     elif 20 <= ccr_est < 40: rec_int = 48
     else: rec_int = 72
     
-    # 投与量 (体重ベース)
-    # 初回負荷: 20-25mg/kg -> 20mg/kg (CKD考慮)
     rec_load = w * 20.0
     rec_load = round(rec_load / 100) * 100
     if rec_load > 2500: rec_load = 2500.0
     
-    # 維持量: 15mg/kg
     rec_maint = w * 15.0
     rec_maint = round(rec_maint / 100) * 100
     if rec_maint > 2000: rec_maint = 2000.0
     
-    # 3. 反映
     st.session_state['interval_input'] = rec_int
     st.session_state['ckd_dose_1'] = float(rec_load)
     for i in range(2, NUM_SLOTS + 1):
@@ -145,7 +137,7 @@ for i in range(1, NUM_SLOTS + 1):
     if key not in st.session_state:
         st.session_state[key] = 1500.0 if i == 1 else 1000.0
 
-# --- 連動更新関数 (手動調整用) ---
+# --- 連動更新関数 ---
 def update_dose_cascade(target_key, increment):
     new_val = st.session_state[target_key] + increment
     if new_val < 0: new_val = 0.0
@@ -160,7 +152,6 @@ def update_dose_cascade(target_key, increment):
 # --- サイドバー: 患者情報 ---
 st.sidebar.header("1. 患者情報")
 
-# 各ウィジェットに key と on_change を設定
 weight = st.sidebar.number_input(
     "体重 (kg)", 30.0, 150.0, 60.0, 1.0, 
     key='weight_input', on_change=auto_calc_recommendation
@@ -200,8 +191,7 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.header("2. 投与スケジュール")
 
-# 推奨間隔はコールバックで計算されているが、初期表示用にもロジックが必要
-# (interval_inputが未定義の場合のフォールバックはnumber_inputが処理)
+# 初期表示用 interval (実質 session_state['interval_input'] が使われる)
 interval = st.sidebar.number_input(
     "投与間隔 (時間)", 12, 168, 24, 12, 
     key='interval_input'
@@ -258,21 +248,19 @@ new_dose = 0
 with col_t1:
     if has_measured:
         st.markdown("##### 📝 実測値")
-        # デフォルト: index=1 ("投与終了後")
         timing_mode = st.selectbox("採血タイミング", ["投与直前 (トラフ)", "投与終了後 (ピーク等)"], index=1)
-        target_dose_num = st.number_input("何回目の投与？", 2, NUM_SLOTS, 3) # デフォルト3回目
+        target_dose_num = st.number_input("何回目の投与？", 2, NUM_SLOTS, 3) 
         
         t_start_dose = (target_dose_num - 1) * interval
         if timing_mode == "投与直前 (トラフ)":
             sampling_time = t_start_dose
         else:
-            # デフォルト: 3.0時間後
             hours_after = st.number_input("投与終了から何時間後？", 0.0, float(interval), 3.0, 0.5)
             sampling_time = t_start_dose + infusion_hr + hours_after
             
         st.caption(f"→ 開始から {sampling_time:.1f} 時間後")
         
-        # デフォルト: 20.0
+        # デフォルト: 12.0
         measured_val = st.number_input("実測値 (µg/mL)", 0.0, 100.0, 20.0, 0.1)
     
     st.markdown("---")
@@ -399,12 +387,31 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
-with st.expander("📚 AUCガイドラインとTDMのポイント", expanded=True):
+with st.expander("📚 目標トラフとMICに関する解説 (Guidelines)", expanded=True):
     st.markdown("""
-    ### 🎯 AUC24 目標: 400 - 600 μg･h/mL
-    * **有効性:** AUC/MIC $\ge$ 400
-    * **安全性:** AUC $\ge$ 600-700 で腎障害リスク増
+    ### 🎯 目標トラフ濃度 (Target Trough)
     
-    **自動計算機能:**
-    体重やCre値を変更すると、CCrに基づいて**推奨投与量（Load/Maint）**と**投与間隔**が自動的にセットされます。
+    VCMの治療目標は **AUC/MIC $\ge$ 400** ですが、実臨床ではトラフ濃度が代替指標として用いられます。
+    
+    | 感染症の重症度 | 目標トラフ濃度 | 備考 |
+    | :--- | :--- | :--- |
+    | **通常・軽症** | **10 - 15 µg/mL** | 尿路感染症、蜂窩織炎など |
+    | **重症・複雑性** | **15 - 20 µg/mL** | 肺炎、敗血症、心内膜炎、骨髄炎、MRSA感染症 |
+    
+    ---
+    ### 🦠 MIC (最小発育阻止濃度) との兼ね合い
+    
+    **AUC/MIC $\ge$ 400** を達成できるかどうかが鍵となります。
+    
+    * **MIC $\le$ 1.0 µg/mL の場合:**
+        * 通常の目標トラフ (15-20 µg/mL) で十分なAUCが確保できます。
+    
+    * **MIC = 2.0 µg/mL の場合 (重要):**
+        * 理論上、AUC/MIC $\ge$ 400 を達成するには **AUC $\ge$ 800** が必要になります。
+        * これを達成しようとすると、トラフ濃度を **20 µg/mL 以上** に維持しなければならず、**腎障害や聴覚障害のリスクが著しく増大**します。
+        * 💡 **推奨:** VCMの増量で粘るのではなく、**リネゾリド (LZD) や ダプトマイシン (DAP)** など、他の抗MRSA薬への変更を強く推奨します。
+    
+    ---
+    ### 💡 自動計算機能
+    患者情報を入力すると、体重とCCrに基づいて推奨投与量・間隔が自動でセットされます。
     """)
