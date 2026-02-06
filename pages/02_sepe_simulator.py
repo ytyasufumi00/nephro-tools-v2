@@ -36,8 +36,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # タイトル
-st.title("🧮 SePE Simulator Ver.2.5 信州上田医療センター腎臓内科")
-st.markdown("### 選択的血漿交換療法 (Selective Plasma Exchange)　患者情報は左上>>から入力")
+st.title("🧮 SePE Simulator Ver.2.5")
+st.markdown("### 選択的血漿交換療法 (Selective Plasma Exchange)　\n💡患者情報は左上>>から入力")
 
 # ==========================================
 # ⬅️ サイドバー：入力パラメータ
