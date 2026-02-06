@@ -79,6 +79,12 @@ st.page_link("pages/05_Overdose_Sim.py",
 st.markdown("---")
 st.markdown("### 💊 薬剤投与設計")
 
+st.page_link("pages/08_VCM_CKD.py", 
+    label="**VCM CKD Simulator**\n\n保存期CKD（透析なし）のVCM投与設計", 
+    icon="🐢", 
+    use_container_width=True
+)
+
 st.page_link("pages/06_VCM_Sim.py", 
     label="**VCM TDM Simulator**\n\nバンコマイシンの週間投与設計・トラフ予測", 
     icon="💊", 
