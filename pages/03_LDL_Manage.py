@@ -131,22 +131,22 @@ def calculate_hisayama_score(age, gender, ldl, hdl, sbp, is_smoker, has_dm):
 st.sidebar.header("患者プロファイル入力")
 
 # 基本情報
-age = st.sidebar.number_input("年齢", 20, 100, 80)
+age = st.sidebar.number_input("年齢", 20, 100, 50)
 gender = st.sidebar.radio("性別", ["男性", "女性"], index=1, horizontal=True)
 
 # 検査値
 st.sidebar.subheader("検査値")
-current_ldl = st.sidebar.number_input("LDLコレステロール (mg/dL)", 0, 500, 238)
+current_ldl = st.sidebar.number_input("LDLコレステロール (mg/dL)", 0, 500, 160)
 current_hdl = st.sidebar.number_input("HDLコレステロール (mg/dL)", 0, 200, 50)
-sbp = st.sidebar.number_input("収縮期血圧 (SBP)", 80, 250, 120)
-dbp = st.sidebar.number_input("拡張期血圧 (DBP)", 40, 150, 70)
+sbp = st.sidebar.number_input("収縮期血圧 (SBP)", 80, 250, 110)
+dbp = st.sidebar.number_input("拡張期血圧 (DBP)", 40, 150, 60)
 
 estimated_tc = current_ldl + current_hdl + 30 
 
 # 病歴・生活習慣
 st.sidebar.subheader("病歴・習慣")
-is_smoker = st.sidebar.checkbox("喫煙習慣あり", value=True)
-has_dm = st.sidebar.checkbox("糖代謝異常 (糖尿病など)", value=True)
+is_smoker = st.sidebar.checkbox("喫煙習慣あり", value=False)
+has_dm = st.sidebar.checkbox("糖代謝異常 (糖尿病など)", value=False)
 has_ckd = st.sidebar.checkbox("慢性腎臓病 (CKD)")
 has_ht_med = st.sidebar.checkbox("降圧薬の内服あり")
 
