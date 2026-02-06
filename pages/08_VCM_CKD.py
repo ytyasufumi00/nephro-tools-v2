@@ -13,7 +13,6 @@ class VCMSimulationCKD:
         self.Vd = params['Vd_per_kg'] * weight
         
         # kel = (0.00083 * CCr + 0.0044) * factor
-        # ※eGFR直接入力の場合はCCrの代わりにeGFR値がそのまま入る想定
         self.kel_base = (0.00083 * ccr + 0.0044) * params['kel_factor']
         self.t_half = 0.693 / self.kel_base if self.kel_base > 0 else 999
         self.cl = self.Vd * self.kel_base
@@ -83,7 +82,6 @@ def fit_kel_from_measured(target_val, measured_hour, weight, dose_list, interval
 st.set_page_config(page_title="VCM CKD Sim", layout="wide")
 st.title("💊 VCM 投与設計 (保存期CKD)")
 
-# --- CSS ---
 st.markdown("""
 <style>
 @media only screen and (max-width: 600px) {
@@ -93,14 +91,61 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- セッションステート初期化 (14回分) ---
+# --- 定数 ---
 NUM_SLOTS = 14
+
+# --- 自動計算コールバック関数 ---
+def auto_calc_recommendation():
+    """
+    患者情報が変更されたときに呼ばれ、
+    推奨投与量・間隔を計算してsession_stateを更新する
+    """
+    # 1. パラメータ取得
+    w = st.session_state.get('weight_input', 60.0)
+    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算")
+    
+    ccr_est = 0.0
+    if mode == "年齢・性別・Creから計算":
+        a = st.session_state.get('age_input', 70)
+        s = st.session_state.get('sex_input', "男性")
+        c = st.session_state.get('cr_input', 1.2)
+        # CCr計算
+        val = ((140 - a) * w) / (72 * c)
+        ccr_est = val * 0.85 if s == "女性" else val
+    else:
+        ccr_est = st.session_state.get('egfr_input_val', 45.0)
+
+    # 2. 推奨設計 (Matzkeノモグラム等参考)
+    # 間隔
+    if ccr_est > 60: rec_int = 12
+    elif 40 <= ccr_est <= 60: rec_int = 24
+    elif 20 <= ccr_est < 40: rec_int = 48
+    else: rec_int = 72
+    
+    # 投与量 (体重ベース)
+    # 初回負荷: 20-25mg/kg -> 20mg/kg (CKD考慮)
+    rec_load = w * 20.0
+    rec_load = round(rec_load / 100) * 100
+    if rec_load > 2500: rec_load = 2500.0
+    
+    # 維持量: 15mg/kg
+    rec_maint = w * 15.0
+    rec_maint = round(rec_maint / 100) * 100
+    if rec_maint > 2000: rec_maint = 2000.0
+    
+    # 3. 反映
+    st.session_state['interval_input'] = rec_int
+    st.session_state['ckd_dose_1'] = float(rec_load)
+    for i in range(2, NUM_SLOTS + 1):
+        st.session_state[f'ckd_dose_{i}'] = float(rec_maint)
+
+# --- セッションステート初期化 ---
 for i in range(1, NUM_SLOTS + 1):
     key = f'ckd_dose_{i}'
     if key not in st.session_state:
         st.session_state[key] = 1500.0 if i == 1 else 1000.0
 
-# --- 連動更新関数 ---
+# --- 連動更新関数 (手動調整用) ---
 def update_dose_cascade(target_key, increment):
     new_val = st.session_state[target_key] + increment
     if new_val < 0: new_val = 0.0
@@ -115,20 +160,24 @@ def update_dose_cascade(target_key, increment):
 # --- サイドバー: 患者情報 ---
 st.sidebar.header("1. 患者情報")
 
-# 共通項目: 体重
-weight = st.sidebar.number_input("体重 (kg)", 30.0, 150.0, 60.0, 1.0)
+# 各ウィジェットに key と on_change を設定
+weight = st.sidebar.number_input(
+    "体重 (kg)", 30.0, 150.0, 60.0, 1.0, 
+    key='weight_input', on_change=auto_calc_recommendation
+)
 
-# 入力モード選択
-input_mode = st.sidebar.radio("腎機能入力方法", ["年齢・性別・Creから計算", "eGFRを直接入力"])
+input_mode = st.sidebar.radio(
+    "腎機能入力方法", ["年齢・性別・Creから計算", "eGFRを直接入力"],
+    key='input_mode', on_change=auto_calc_recommendation
+)
 
 ccr_for_sim = 0.0
 
 if input_mode == "年齢・性別・Creから計算":
-    age = st.sidebar.number_input("年齢", 18, 100, 70)
-    sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True)
-    cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1)
+    age = st.sidebar.number_input("年齢", 18, 100, 70, key='age_input', on_change=auto_calc_recommendation)
+    sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True, key='sex_input', on_change=auto_calc_recommendation)
+    cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1, key='cr_input', on_change=auto_calc_recommendation)
 
-    # 計算ロジック
     def calc_ccr(age, sex, cr, weight):
         val = ((140 - age) * weight) / (72 * cr)
         return val * 0.85 if sex == "女性" else val
@@ -137,33 +186,31 @@ if input_mode == "年齢・性別・Creから計算":
     eGFR_calc = 194 * (cr**-1.094) * (age**-0.287) * (0.739 if sex == "女性" else 1.0)
     
     st.sidebar.info(f"🧬 **CCr: {ccr_calc:.1f} mL/min**\n\n(eGFR: {eGFR_calc:.1f})")
-    ccr_for_sim = ccr_calc # シミュレーションにはCCrを使用
-
+    ccr_for_sim = ccr_calc 
 else:
-    # eGFR直接入力
-    egfr_input = st.sidebar.number_input("eGFR (mL/min)", 0.0, 150.0, 45.0, 1.0, help="本来Matzke式はCCrを用いますが、便宜上eGFR値を代用して計算します。")
+    egfr_input = st.sidebar.number_input(
+        "eGFR (mL/min)", 0.0, 150.0, 45.0, 1.0, 
+        key='egfr_input_val', on_change=auto_calc_recommendation
+    )
     st.sidebar.info(f"🧬 入力値 **{egfr_input:.1f}** を腎機能指標として使用")
-    ccr_for_sim = egfr_input # シミュレーションにはeGFRをそのまま使用
+    ccr_for_sim = egfr_input 
 
 
 # --- サイドバー: 投与設定 (個別入力) ---
 st.sidebar.markdown("---")
 st.sidebar.header("2. 投与スケジュール")
 
-# 推奨間隔
-rec_interval = 24
-if ccr_for_sim > 60: rec_interval = 12
-elif 40 <= ccr_for_sim <= 60: rec_interval = 24
-elif 20 <= ccr_for_sim < 40: rec_interval = 48
-else: rec_interval = 72
-
-interval = st.sidebar.number_input("投与間隔 (時間)", 12, 168, rec_interval, 12, help="カレンダー表示の基準となる間隔です")
+# 推奨間隔はコールバックで計算されているが、初期表示用にもロジックが必要
+# (interval_inputが未定義の場合のフォールバックはnumber_inputが処理)
+interval = st.sidebar.number_input(
+    "投与間隔 (時間)", 12, 168, 24, 12, 
+    key='interval_input'
+)
 infusion_hr = st.sidebar.selectbox("点滴時間", [1.0, 2.0], index=0)
 
 st.sidebar.markdown("##### 💉 投与量入力 (連動)")
-st.sidebar.caption("※値を変更すると以降も自動更新されます")
+st.sidebar.caption("※患者情報を変更すると推奨量が自動入力されます")
 
-# 入力ループ
 for i in range(1, NUM_SLOTS + 1):
     key = f'ckd_dose_{i}'
     total_hours = (i - 1) * interval
@@ -187,13 +234,9 @@ with st.sidebar.expander("詳細PKパラメータ"):
 pk_params = {'Vd_per_kg': vd_pk, 'kel_factor': kel_factor}
 sim = VCMSimulationCKD(weight, ccr_for_sim, pk_params)
 
-# セッションステートから投与リスト作成
 current_dose_list = [st.session_state[f'ckd_dose_{i}'] for i in range(1, NUM_SLOTS + 1)]
-
-# シミュレーション
 times, conc_base = sim.run_sim_schedule(current_dose_list, interval, infusion_time=infusion_hr)
 
-# AUC24 (定常状態と仮定して最後の投与量を使用)
 last_dose = current_dose_list[-1]
 daily_dose_equiv = last_dose * (24 / interval)
 auc24_initial = sim.calc_auc24_steady(daily_dose_equiv)
@@ -205,8 +248,8 @@ st.subheader("🩸 TDM解析 / AUC評価")
 
 col_t1, col_t2 = st.columns([1.5, 2.5])
 
-# 入力モード
-has_measured = st.radio("入力モード", ["シミュレーションのみ", "TDM実測値あり"], horizontal=True, label_visibility="collapsed") == "TDM実測値あり"
+# デフォルト設定: index=1 ("TDM実測値あり")
+has_measured = st.radio("入力モード", ["シミュレーションのみ", "TDM実測値あり"], index=1, horizontal=True, label_visibility="collapsed") == "TDM実測値あり"
 
 sim_fitted = None
 mod_conc = None
@@ -215,20 +258,22 @@ new_dose = 0
 with col_t1:
     if has_measured:
         st.markdown("##### 📝 実測値")
-        timing_mode = st.selectbox("採血タイミング", ["投与直前 (トラフ)", "投与終了後 (ピーク等)"])
-        target_dose_num = st.number_input("何回目の投与？", 2, NUM_SLOTS, 3)
+        # デフォルト: index=1 ("投与終了後")
+        timing_mode = st.selectbox("採血タイミング", ["投与直前 (トラフ)", "投与終了後 (ピーク等)"], index=1)
+        target_dose_num = st.number_input("何回目の投与？", 2, NUM_SLOTS, 3) # デフォルト3回目
         
-        # サンプリング時間計算
         t_start_dose = (target_dose_num - 1) * interval
         if timing_mode == "投与直前 (トラフ)":
             sampling_time = t_start_dose
         else:
-            # float変換してエラー回避
-            hours_after = st.number_input("投与終了から何時間後？", 0.0, float(interval), 2.0, 0.5)
+            # デフォルト: 3.0時間後
+            hours_after = st.number_input("投与終了から何時間後？", 0.0, float(interval), 3.0, 0.5)
             sampling_time = t_start_dose + infusion_hr + hours_after
             
         st.caption(f"→ 開始から {sampling_time:.1f} 時間後")
-        measured_val = st.number_input("実測値 (µg/mL)", 0.0, 100.0, 0.0, 0.1)
+        
+        # デフォルト: 20.0
+        measured_val = st.number_input("実測値 (µg/mL)", 0.0, 100.0, 20.0, 0.1)
     
     st.markdown("---")
     st.markdown("##### 🎯 目標")
@@ -245,13 +290,11 @@ with col_t2:
         with st.spinner("パラメータ逆算中..."):
             fitted_kel = fit_kel_from_measured(measured_val, sampling_time, weight, current_dose_list, interval, vd_pk, infusion_hr)
             
-            # フィッティング線
             sim_fit_obj = VCMSimulationCKD(weight, ccr_for_sim, pk_params)
             sim_fit_obj.kel_base = fitted_kel
             sim_fit_obj.cl = sim_fit_obj.Vd * fitted_kel
             _, sim_fitted = sim_fit_obj.run_sim_schedule(current_dose_list, interval, infusion_hr)
             
-            # 推定AUC
             auc_current = sim_fit_obj.calc_auc24_steady(daily_dose_equiv)
             
             c1, c2 = st.columns(2)
@@ -265,43 +308,35 @@ with col_t2:
         if not has_measured:
             st.metric("予測AUC24 (初期設定)", f"{auc_current:.0f}")
 
-    # 提案ロジック
     if (has_measured and measured_val > 0) or not has_measured:
         st.markdown("##### 💡 投与量提案")
         
-        # 必要1日量計算
         if target_mode == "AUC24 (推奨)":
             req_daily_dose = target_auc * used_sim_obj.cl
         else:
-            # トラフ比例計算
             base_data = sim_fitted if sim_fitted is not None else conc_base
-            curr_trough = base_data[-1] # 末尾の定常状態
+            curr_trough = base_data[-1]
             if curr_trough > 0:
                 req_daily_dose = daily_dose_equiv * (target_trough / curr_trough)
             else:
                 req_daily_dose = daily_dose_equiv
         
-        # 1回量換算
         suggest_raw = req_daily_dose / (24 / interval)
         new_dose = round(suggest_raw / 100) * 100
         
         if new_dose != last_dose:
             st.success(f"推奨維持量: **{new_dose} mg** (間隔 {interval}h のまま)")
             
-            # 修正プランシミュレーション (測定回以降を変更)
             mod_dose_list = current_dose_list.copy()
-            
-            # 変更開始ポイント
             if has_measured:
-                start_mod_idx = int(target_dose_num) # 次回から
+                start_mod_idx = int(target_dose_num)
                 if start_mod_idx >= NUM_SLOTS: start_mod_idx = NUM_SLOTS - 1
             else:
-                start_mod_idx = 1 # 2回目(維持量)から
+                start_mod_idx = 1
             
             for k in range(start_mod_idx, NUM_SLOTS):
                 mod_dose_list[k] = new_dose
             
-            # シミュレーション
             sim_mod_obj = VCMSimulationCKD(weight, ccr_for_sim, pk_params)
             sim_mod_obj.kel_base = used_sim_obj.kel_base
             _, mod_conc = sim_mod_obj.run_sim_schedule(mod_dose_list, interval, infusion_hr)
@@ -317,7 +352,6 @@ st.subheader("📈 シミュレーション結果")
 
 fig = go.Figure()
 
-# 1. オレンジ: 現在の入力値からの予測 (初期 or フィッティングなし)
 if sim_fitted is not None:
     y_orange = sim_fitted
     name_orange = "実測からの推定 (Current)"
@@ -331,7 +365,6 @@ fig.add_trace(go.Scatter(
     line=dict(color='orange', width=2)
 ))
 
-# 実測点
 if has_measured and measured_val > 0:
     fig.add_trace(go.Scatter(
         x=[sampling_time/24], y=[measured_val],
@@ -339,7 +372,6 @@ if has_measured and measured_val > 0:
         marker=dict(color='red', size=12, symbol='x')
     ))
 
-# 2. 緑: 修正プラン
 if mod_conc is not None:
     fig.add_trace(go.Scatter(
         x=times/24, y=mod_conc,
@@ -347,10 +379,8 @@ if mod_conc is not None:
         line=dict(color='green', width=3)
     ))
 
-# 帯
 fig.add_hrect(y0=10, y1=20, fillcolor="green", opacity=0.05, line_width=0, annotation_text="Trough 10-20")
 
-# X軸ラベル生成 (Day 1, Day 2...)
 tick_vals = []
 tick_texts = []
 for d in range(0, int(times[-1]/24) + 1):
@@ -368,7 +398,6 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# AUC解説
 st.markdown("---")
 with st.expander("📚 AUCガイドラインとTDMのポイント", expanded=True):
     st.markdown("""
@@ -376,6 +405,6 @@ with st.expander("📚 AUCガイドラインとTDMのポイント", expanded=Tru
     * **有効性:** AUC/MIC $\ge$ 400
     * **安全性:** AUC $\ge$ 600-700 で腎障害リスク増
     
-    保存期CKDでは半減期が延長しているため、トラフ値だけでなくAUCを確認して蓄積を防ぐことが重要です。
-    サイドバーで**個別の投与量**を入力すると、グラフ（オレンジ線）に即座に反映されます。
+    **自動計算機能:**
+    体重やCre値を変更すると、CCrに基づいて**推奨投与量（Load/Maint）**と**投与間隔**が自動的にセットされます。
     """)
