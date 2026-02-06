@@ -208,18 +208,13 @@ with col_t1:
             st.caption(f"→ 開始から {sampling_time} 時間後")
         else:
             # 投与終了後
-            hours_after = st.number_input("投与終了から何時間後？", 0.0, interval, 2.0, 0.5)
-            # N回目の開始 + 点滴時間 + 経過時間
-            # N回目の開始 = 初回(0) + (N-1)*interval
-            # 投与は初回から数えて(0, 1, 2...)なので、target_dose_num(1始まり)に注意
-            # 1回目(start=0) -> 終了1h -> 1+2=3h後
-            start_time_of_dose = 0 if target_dose_num == 1 else interval * (target_dose_num - 1) # 初回だけload間隔だが簡易的にinterval
-            # 初回と2回目以降の間隔が違う場合ここはずれるが、CKDでは通常loadの次はmaint間隔で進む
-            # 正確には: 
+            # 【修正点】intervalをfloatにキャストして型エラーを回避
+            hours_after = st.number_input("投与終了から何時間後？", 0.0, float(interval), 2.0, 0.5)
+            
             if target_dose_num == 1:
                  t_start = 0
             else:
-                 t_start = interval * (target_dose_num - 1) # 初回もintervalだったと仮定した簡易計算
+                 t_start = interval * (target_dose_num - 1)
                  
             sampling_time = t_start + infusion_hr + hours_after
             st.caption(f"→ 開始から {sampling_time} 時間後")
