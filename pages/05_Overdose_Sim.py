@@ -196,10 +196,14 @@ hd_start_hours = st.sidebar.number_input("服用から透析開始まで (時間
 hd_start = int(hd_start_hours * 60) # 分換算
 
 st.sidebar.header("2. 薬剤選択・設定")
-drug_list = ["カフェイン", "アシクロビル", "カルバマゼピン", "バルプロ酸", "メタノール", "リチウム", "カスタム (自由設定)"]
+drug_list = [
+    "カフェイン", "アシクロビル", "カルバマゼピン", "バルプロ酸", "メタノール", "リチウム", 
+    "エチゾラム (対象外、教育用)", "ジゴキシン (対象外、教育用)", "カスタム (自由設定)"
+]
 drug_choice = st.sidebar.selectbox("対象薬剤", drug_list)
 
 # --- パラメータと閾値定義 ---
+# unit (表示単位) を追加
 default_params = {
     'カフェイン': {
         'V1': 0.2, 'V2': 0.4, 
@@ -234,6 +238,22 @@ default_params = {
         'thresholds': {'Toxic (>10.5)': 10.5, 'Severe (>17.5)': 17.5}, # mg/L換算値
         'unit': 'mg/L' 
     },
+    'エチゾラム (対象外、教育用)': {
+        'V1': 1.0, 'V2': 1.5, # Vdが大きい
+        'Q': 0.5, 'T1/2': 6.0,
+        'KoA': 0, # 蛋白結合率93%のため除去されない(KoA=0)
+        'dose': 30, # 1mg x 30錠
+        'thresholds': {},
+        'unit': 'µg/mL'
+    },
+    'ジゴキシン (対象外、教育用)': {
+        'V1': 0.5, 'V2': 7.0, # Vdが極めて大きい(組織移行性が高い)
+        'Q': 0.1, 'T1/2': 36.0,
+        'KoA': 10, # 除去されても組織からの供給が間に合わず総量は減らない
+        'dose': 5, # 0.25mg x 20錠
+        'thresholds': {'Toxic (>2ng/mL)': 0.002}, # 2ng/mL = 0.002 µg/mL
+        'unit': 'µg/mL'
+    },
     'カスタム (自由設定)': {
         'V1': 0.2, 'V2': 0.4, 'Q': 0.3, 'T1/2': 12.0, 'KoA': 500, 'dose': 5000,
         'thresholds': {},
@@ -251,7 +271,7 @@ with st.sidebar.expander("薬剤パラメータ詳細設定", expanded=True):
     with col_v1:
         v1_pk = st.slider("V1 (L/kg) 中心室", 0.05, 2.0, p['V1'], 0.01)
     with col_v2:
-        v2_pk = st.slider("V2 (L/kg) 末梢室", 0.05, 5.0, p['V2'], 0.01)
+        v2_pk = st.slider("V2 (L/kg) 末梢室", 0.05, 10.0, p['V2'], 0.01)
     
     col_k1, col_k2 = st.columns(2)
     with col_k1:
