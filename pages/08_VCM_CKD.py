@@ -160,7 +160,7 @@ weight = st.sidebar.number_input(
 )
 
 input_mode = st.sidebar.radio(
-    "腎機能入力方法", ["年齢・性別・Creから計算(推奨)", "eGFRを直接入力(要BSA補正)"],
+    "腎機能入力方法", ["年齢・性別・Creから計算(💡推奨)", "eGFRを直接入力(要BSA補正)"],
     key='input_mode', on_change=auto_calc_recommendation
 )
 
