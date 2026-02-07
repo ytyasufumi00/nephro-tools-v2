@@ -100,10 +100,10 @@ def auto_calc_recommendation():
     患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
     """
     w = st.session_state.get('weight_input', 60.0)
-    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算(推奨)")
+    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算")
     
     ccr_est = 0.0
-    if mode == "年齢・性別・Creから計算(推奨)":
+    if mode == "年齢・性別・Creから計算":
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
@@ -158,7 +158,7 @@ weight = st.sidebar.number_input(
 )
 
 input_mode = st.sidebar.radio(
-    "腎機能入力方法", ["年齢・性別・Creから計算", "eGFRを直接入力"],
+    "腎機能入力方法", ["年齢・性別・Creから計算(推奨)", "eGFRを直接入力(要BSA補正)"],
     key='input_mode', on_change=auto_calc_recommendation
 )
 
