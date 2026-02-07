@@ -203,15 +203,16 @@ drug_list = [
 drug_choice = st.sidebar.selectbox("対象薬剤", drug_list)
 
 # --- パラメータと閾値定義 ---
+# unit (表示単位) を追加
 default_params = {
     'カフェイン': {
         'V1': 0.2, 'V2': 0.4, 
-        'Q': 0.5, 'T1/2': 15.0, 'KoA': 700, 'dose': 10000,
+        'Q': 0.5, 'T1/2': 15.0, 'KoA': 700, 'dose': 6000,
         'thresholds': {'Toxic (>80)': 80, 'Fatal (>100)': 100},
         'unit': 'µg/mL'
     },
     'アシクロビル': {
-        'V1': 0.15, 'V2': 0.55, 'Q': 0.2, 'T1/2': 20.0, 'KoA': 600, 'dose': 6000,
+        'V1': 0.15, 'V2': 0.55, 'Q': 0.2, 'T1/2': 20.0, 'KoA': 600, 'dose': 5000,
         'thresholds': {'Neurotoxicity (>50)': 50},
         'unit': 'µg/mL'
     },
@@ -234,22 +235,22 @@ default_params = {
     },
     'リチウム': {
         'V1': 0.3, 'V2': 0.6, 'Q': 0.15, 'T1/2': 40.0, 'KoA': 850, 'dose': 4000,
-        'thresholds': {'Toxic (>10.5)': 10.5, 'Severe (>17.5)': 17.5}, # mg/L換算値
-        'unit': 'mg/L' 
+        'thresholds': {'Toxic (>1.5)': 1.5, 'Severe (>2.5)': 2.5}, # mEq/L
+        'unit': 'mEq/L' 
     },
     'エチゾラム (対象外、教育用)': {
-        'V1': 0.4, 'V2': 15.0, # Vd 5.0 L/kg (脂肪組織への分布)
+        'V1': 0.3, 'V2': 1.7, # Vd 2.0 L/kg (脂肪組織への分布大)
         'Q': 0.3, 'T1/2': 6.0,
-        'KoA': 100, # 蛋白結合率93%のため除去されない
-        'dose': 100, # 10mg (過量)
+        'KoA': 0, # 蛋白結合率93%のため除去されない
+        'dose': 10, # 10mg (過量)
         'thresholds': {},
         'unit': 'µg/mL'
     },
     'ジゴキシン (対象外、教育用)': {
         'V1': 0.5, 'V2': 7.5, # Vd 8.0 L/kg (骨格筋への高度集積)
-        'Q': 0.5, 'T1/2': 48.0, # 腎不全では著明に延長(通常3-5日)
-        'KoA': 700, # 膜通過性はあってもVdが巨大すぎて除去効率は皆無
-        'dose': 30, # 5mg (過量)
+        'Q': 0.1, 'T1/2': 48.0, # 腎不全では著明に延長(通常3-5日)
+        'KoA': 15, # 膜通過性はあってもVdが巨大すぎて除去効率は皆無
+        'dose': 5, # 5mg (過量)
         'thresholds': {'Toxic (>2ng/mL)': 0.002}, # 2ng/mL = 0.002 µg/mL
         'unit': 'µg/mL'
     },
@@ -263,6 +264,7 @@ default_params = {
 p = default_params[drug_choice]
 
 with st.sidebar.expander("薬剤パラメータ詳細設定", expanded=True):
+    # 入力は常にmg単位
     overdose_amount = st.number_input("摂取量 (mg)", value=p['dose'], step=100)
     
     st.caption(f"▼ {drug_choice} 設定値")
@@ -293,8 +295,14 @@ sim = DrugSimulation(current_params, weight)
 total_time = hd_start + 24 * 60
 time_steps = np.arange(0, total_time, 1)
 
+# リチウムの場合は mg -> mEq に変換してシミュレーション (Li2CO3: 73.89, Li+: 6.94)
+# 1 mg Li2CO3 = 2/73.89 mEq Li ~= 0.027067 mEq
+simulation_dose = overdose_amount
+if drug_choice == 'リチウム':
+    simulation_dose = overdose_amount * (2 / 73.89)
+
 # 自動計算
-a1_pre = overdose_amount
+a1_pre = simulation_dose
 a2_pre = 0.0
 
 for _ in range(hd_start):
