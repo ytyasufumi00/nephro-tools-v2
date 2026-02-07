@@ -200,10 +200,10 @@ drug_list = ["カフェイン", "アシクロビル", "カルバマゼピン", "
 drug_choice = st.sidebar.selectbox("対象薬剤", drug_list)
 
 # --- パラメータと閾値定義 ---
-# ✅ 変更点：unit (表示単位) を追加
 default_params = {
     'カフェイン': {
-        'V1': 0.2, 'V2': 0.4, 'Q': 0.5, 'T1/2': 15.0, 'KoA': 700, 'dose': 6000,
+        'V1': 0.2, 'V2': 0.4, 
+        'Q': 0.5, 'T1/2': 15.0, 'KoA': 700, 'dose': 6000,
         'thresholds': {'Toxic (>80)': 80, 'Fatal (>100)': 100},
         'unit': 'µg/mL'
     },
@@ -213,7 +213,8 @@ default_params = {
         'unit': 'µg/mL'
     },
     'カルバマゼピン': {
-        'V1': 0.3, 'V2': 0.8, 'Q': 0.25, 'T1/2': 24.0, 'KoA': 450, 'dose': 8000,
+        'V1': 0.3, 'V2': 0.8, 'Q': 
+        0.25, 'T1/2': 24.0, 'KoA': 450, 'dose': 8000,
         'thresholds': {'Toxic (>20)': 20, 'Severe (>40)': 40},
         'unit': 'µg/mL'
     },
@@ -223,7 +224,8 @@ default_params = {
         'unit': 'µg/mL'
     },
     'メタノール': {
-        'V1': 0.6, 'V2': 0.1, 'Q': 0.8, 'T1/2': 40.0, 'KoA': 900, 'dose': 30000,
+        'V1': 0.6, 
+        'V2': 0.1, 'Q': 0.8, 'T1/2': 40.0, 'KoA': 900, 'dose': 30000,
         'thresholds': {'Toxic (>200)': 200, 'HD Indication (>500)': 500},
         'unit': 'mg/L' # 数値的整合性のためmg/L (20mg/dL = 200mg/L)
     },
@@ -261,13 +263,15 @@ with st.sidebar.expander("薬剤パラメータ詳細設定", expanded=True):
 
 current_params = {
     'V1_per_kg': v1_pk, 'V2_per_kg': v2_pk, 
-    'Q_inter_L_min': q_inter, 'T_half_hours': t_half, 'KoA': koa
+    'Q_inter_L_min': q_inter, 'T_half_hours': t_half, 
+    'KoA': koa
 }
 
 # --- 自動実行ロジック ---
 sim = DrugSimulation(current_params, weight)
 
-total_time = 24 * 60 
+# グラフ表示範囲: 服用から透析開始までの時間 + 24時間
+total_time = hd_start + 24 * 60
 time_steps = np.arange(0, total_time, 1)
 
 # 自動計算
@@ -312,7 +316,8 @@ with col1:
     colors = {'Blood (No HD)': 'gray', 'Tissue (No HD)': 'lightblue', 'Tissue (With HD)': '#1f77b4', 'Blood (With HD)': '#d62728'}
     dashes = {'Blood (No HD)': [2, 2], 'Tissue (No HD)': [2, 2], 'Tissue (With HD)': [5, 5], 'Blood (With HD)': [0]}
     
-    base = alt.Chart(df_chart).encode(x=alt.X('Time', title='Time (hours)', scale=alt.Scale(domain=[0, 24])))
+    max_time_hr = total_time / 60
+    base = alt.Chart(df_chart).encode(x=alt.X('Time', title='Time (hours)', scale=alt.Scale(domain=[0, max_time_hr])))
     
     lines = base.mark_line().encode(
         y=alt.Y('Concentration', title=f'Concentration ({p["unit"]})'), # 軸ラベルにも単位反映
@@ -335,15 +340,15 @@ with col1:
     st.altair_chart(final_chart, use_container_width=True)
     
 with col2:
-    idx_24h = -1
-    st.markdown("### at 24 hours")
+    idx_end = -1
+    st.markdown(f"### at {max_time_hr:.1f} hours")
     # ✅ 変更点：単位を表示
     unit = p['unit']
-    st.metric(f"Blood (With HD)", f"{c1_hd[idx_24h]:.1f} {unit}")
-    st.metric(f"Blood (No HD)", f"{c1_none[idx_24h]:.1f} {unit}")
+    st.metric(f"Blood (With HD)", f"{c1_hd[idx_end]:.1f} {unit}")
+    st.metric(f"Blood (No HD)", f"{c1_none[idx_end]:.1f} {unit}")
     
-    if c1_none[idx_24h] > 0:
-        reduction = (1 - c1_hd[idx_24h] / c1_none[idx_24h]) * 100
+    if c1_none[idx_end] > 0:
+        reduction = (1 - c1_hd[idx_end] / c1_none[idx_end]) * 100
         st.success(f"Reduction: {reduction:.1f}%")
         
     st.markdown("---")
