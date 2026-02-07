@@ -34,7 +34,11 @@ class VCMSimulation:
             clearance = Qb * (exp_z - 1) / (exp_z - ratio)
         return clearance / 1000.0 # mL/min -> L/min
 
-    def run_sim(self, schedule_events, total_hours=336):
+    def run_sim(self, schedule_events, total_hours=336, start_adjust=None):
+        """
+        start_adjust: {'idx': time_index, 'conc': value}
+        指定したタイミングで濃度を強制的に実測値に合わせるオプション
+        """
         time_steps = np.arange(0, total_hours * 60, 1) # 分単位
         conc_v1 = np.zeros(len(time_steps))
         
@@ -57,6 +61,21 @@ class VCMSimulation:
                 infusion_map[start:end] += rate
 
         for i in range(len(time_steps)):
+            # --- 【修正点】実測値による状態リセット ---
+            if start_adjust and i == start_adjust['idx']:
+                measured_val = start_adjust['conc']
+                current_conc = A1 / self.V1 if self.V1 > 0 else 0
+                
+                # A1を実測値に合わせる。A2(組織内量)も比率を保って補正する
+                if current_conc > 0:
+                    ratio = measured_val / current_conc
+                    A1 = measured_val * self.V1
+                    A2 = A2 * ratio
+                else:
+                    A1 = measured_val * self.V1
+                    # A2は不明だが、ゼロからの立ち上がりでない限り維持または0
+            # ------------------------------------------
+
             conc_v1[i] = A1 / self.V1
             
             trans = (self.k21 * A2) - (self.k12 * A1)
@@ -126,22 +145,14 @@ DOSE_SLOTS = 6
 
 # --- 自動推奨ロジック ---
 def auto_calc_hd_recommendation():
-    """
-    体重等が変更されたときに推奨投与量を計算してセットする
-    Load: 20 mg/kg, Maint: 10 mg/kg
-    """
     w = st.session_state.get('weight_input', 60.0)
-    
-    # 推奨計算
     rec_load = w * 20.0
-    rec_load = round(rec_load / 50) * 50 # 50mg丸め
-    if rec_load > 2000: rec_load = 2000.0 # 安全キャップ
-    
+    rec_load = round(rec_load / 50) * 50 
+    if rec_load > 2000: rec_load = 2000.0 
     rec_maint = w * 10.0
     rec_maint = round(rec_maint / 50) * 50
     if rec_maint > 1000: rec_maint = 1000.0
     
-    # Session State更新
     st.session_state['dose_1'] = float(rec_load)
     for i in range(2, DOSE_SLOTS + 1):
         st.session_state[f'dose_{i}'] = float(rec_maint)
@@ -152,12 +163,11 @@ for i in range(1, DOSE_SLOTS + 1):
     if key not in st.session_state:
         st.session_state[key] = 1000.0 if i == 1 else 500.0
 
-# --- 連動ロジック (手動操作時) ---
+# --- 連動ロジック ---
 def update_dose_cascade(target_key, increment):
     new_val = st.session_state[target_key] + increment
     if new_val < 0: new_val = 0.0
     st.session_state[target_key] = new_val
-    
     try:
         current_idx = int(target_key.split('_')[-1])
         for i in range(current_idx + 1, DOSE_SLOTS + 1):
@@ -168,7 +178,6 @@ def update_dose_cascade(target_key, increment):
 # --- サイドバー設定 ---
 st.sidebar.header("1. 患者・透析条件")
 
-# keyとon_changeを設定して自動計算をトリガー
 weight = st.sidebar.number_input(
     "体重 (kg)", 30.0, 150.0, 60.0, 1.0, 
     key='weight_input', on_change=auto_calc_hd_recommendation
@@ -185,7 +194,7 @@ with st.sidebar.expander("詳細PKパラメータ", expanded=False):
     q_inter = st.number_input("組織間移行Q (L/min)", value=0.15)
     koa = st.number_input("膜KoA", value=350)
 
-# --- スケジュール設定 (曜日選択) ---
+# --- スケジュール設定 ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("📅 透析スケジュール")
 hd_pattern = st.sidebar.selectbox("透析パターン", ["月・水・金", "火・木・土"])
@@ -193,14 +202,13 @@ hd_pattern = st.sidebar.selectbox("透析パターン", ["月・水・金", "火
 weekdays_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 if hd_pattern == "月・水・金":
     start_options = ["月曜日 (Mon)", "水曜日 (Wed)", "金曜日 (Fri)"]
-    pattern_indices = [0, 2, 4] # Mon, Wed, Fri
+    pattern_indices = [0, 2, 4]
 else:
     start_options = ["火曜日 (Tue)", "木曜日 (Thu)", "土曜日 (Sat)"]
-    pattern_indices = [1, 3, 5] # Tue, Thu, Sat
+    pattern_indices = [1, 3, 5]
 
 start_day_label = st.sidebar.selectbox("開始曜日 (Day 1)", start_options)
 
-# スケジュール計算
 if "(Mon)" in start_day_label: start_day_idx = 0
 elif "(Tue)" in start_day_label: start_day_idx = 1
 elif "(Wed)" in start_day_label: start_day_idx = 2
@@ -233,7 +241,7 @@ hd_days_offset_next = cum_days
 next_label = f"Day {cum_days + 1} ({weekdays_map[current_day_idx]})"
 
 
-# --- 投与スケジュール入力UI (サイドバー) ---
+# --- 投与スケジュール入力UI ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("投与計画 (50mg調整)")
 st.sidebar.caption("※患者情報を変更すると推奨量が自動入力されます")
@@ -292,7 +300,7 @@ with col_in1:
     selected_idx = tdm_options.index(selected_label_full)
 
 with col_in2:
-    measured_val = st.number_input("血中濃度 (µg/mL)", value=12.0, step=0.1)
+    measured_val = st.number_input("血中濃度 (µg/mL)", value=0.0, step=0.1)
 
 with col_in3:
     target_val = st.number_input("目標値 (µg/mL)", value=15.0, step=1.0)
@@ -311,21 +319,25 @@ if measured_val > 0:
     target_min = hd_times[selected_idx]
     target_idx_sim = int(target_min)
     
+    # 1. パラメータ逆算
     with st.spinner("パラメータ解析中..."):
         fitted_params, adjusted_key = fit_parameter_robust(measured_val, target_idx_sim, init_params, weight, events_current, 'trough')
     
+    # 2. 成り行きシミュレーション (【修正】実測値でリセット)
     sim_fit = VCMSimulation(weight, fitted_params)
-    _, sim_conc_fitted = sim_fit.run_sim(events_current, total_hours=(hd_days_offset_next + 2) * 24)
+    start_adj = {'idx': target_idx_sim, 'conc': measured_val}
+    _, sim_conc_fitted = sim_fit.run_sim(events_current, total_hours=(hd_days_offset_next + 2) * 24, start_adjust=start_adj)
 
-    # 修正プラン
+    # 3. 修正プランの提案
     st.markdown("---")
     st.subheader("💡 投与量変更シミュレーション")
 
     start_dose_idx = selected_idx
     if start_dose_idx > 5: start_dose_idx = 5 
 
-    future_dose_days = [l.split(" ")[0] + " " + l.split(" ")[1] for l in hd_labels[start_dose_idx:]]
+    future_dose_days = [l.split(" ")[0] + " " + l.split(" ")[1] for l in hd_labels[start_dose_idx:]] 
     
+    # 推奨投与量の計算
     next_idx = min(selected_idx + 1, 6)
     target_sim_idx = int(hd_times[next_idx])
     pred_next_trough = sim_conc_fitted[target_sim_idx] if target_sim_idx < len(sim_conc_fitted) else 0
@@ -354,6 +366,7 @@ if measured_val > 0:
         else:
             st.warning("シミュレーション期間内の投与予定は終了しています。")
 
+    # 4. 修正プランシミュレーション (【修正】実測値でリセット)
     modified_doses = current_doses.copy()
     for i in range(start_dose_idx, DOSE_SLOTS):
         modified_doses[i] = modified_dose
@@ -361,7 +374,7 @@ if measured_val > 0:
     events_modified, _ = build_events(modified_doses, hd_days_offset)
     
     sim_mod = VCMSimulation(weight, fitted_params)
-    _, sim_conc_modified = sim_mod.run_sim(events_modified, total_hours=(hd_days_offset_next + 2) * 24)
+    _, sim_conc_modified = sim_mod.run_sim(events_modified, total_hours=(hd_days_offset_next + 2) * 24, start_adjust=start_adj)
 
 
 # ==========================================
