@@ -100,10 +100,12 @@ def auto_calc_recommendation():
     患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
     """
     w = st.session_state.get('weight_input', 60.0)
-    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算")
+    # 【修正】デフォルト値をラジオボタンの選択肢名に合わせる
+    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算(推奨)")
     
     ccr_est = 0.0
-    if mode == "年齢・性別・Creから計算":
+    # 【修正】条件分岐の文字列をラジオボタンの選択肢名に合わせる
+    if mode == "年齢・性別・Creから計算(推奨)":
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
@@ -164,7 +166,8 @@ input_mode = st.sidebar.radio(
 
 ccr_for_sim = 0.0
 
-if input_mode == "年齢・性別・Creから計算":
+# 【修正】条件分岐の文字列をラジオボタンの選択肢名に合わせる
+if input_mode == "年齢・性別・Creから計算(推奨)":
     age = st.sidebar.number_input("年齢", 18, 100, 70, key='age_input', on_change=auto_calc_recommendation)
     sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True, key='sex_input', on_change=auto_calc_recommendation)
     cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1, key='cr_input', on_change=auto_calc_recommendation)
