@@ -86,7 +86,7 @@ st.page_link("pages/08_VCM_CKD.py",
 )
 
 st.page_link("pages/06_VCM_Sim.py", 
-    label="**VCM TDM Simulator**\n\nバンコマイシンの週間投与設計・トラフ予測", 
+    label="**VCM TDM Simulator**\n\n透析中のバンコマイシン週間投与設計・トラフ予測", 
     icon="💊", 
     use_container_width=True
 )
