@@ -332,8 +332,19 @@ with col1:
         )
     })
     
-    colors = {'Blood (No HD)': 'gray', 'Tissue (No HD)': 'lightblue', 'Tissue (With HD)': '#1f77b4', 'Blood (With HD)': '#d62728'}
-    dashes = {'Blood (No HD)': [2, 2], 'Tissue (No HD)': [2, 2], 'Tissue (With HD)': [5, 5], 'Blood (With HD)': [0]}
+    # 色と線のスタイルの定義 (ダークモード対応 & 判別しやすく変更)
+    colors = {
+        'Blood (With HD)': '#FF4B4B',   # 赤 (Solid) - 最重要
+        'Tissue (With HD)': '#56CCF2',  # 水色 (Long Dash)
+        'Blood (No HD)': '#F2994A',     # オレンジ (Dot) - 対照
+        'Tissue (No HD)': '#6FCF97'     # 緑 (Dot) - 対照
+    }
+    dashes = {
+        'Blood (With HD)': [0],         # Solid
+        'Tissue (With HD)': [6, 4],     # Long Dash
+        'Blood (No HD)': [2, 2],        # Dot
+        'Tissue (No HD)': [2, 2]        # Dot
+    }
     
     max_time_hr = total_time / 60
     base = alt.Chart(df_chart).encode(x=alt.X('Time', title='Time (hours)', scale=alt.Scale(domain=[0, max_time_hr])))
