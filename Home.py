@@ -45,7 +45,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 3. メインコンテンツ ---
-st.title("🏥 信州上田医療センター 腎臓内科")
+st.title("🏥 信州上田医療センター 腎臓内科しげちゃんおはよう")
 st.markdown("##### Clinical Calculation Tools Portal")
 
 st.info("👇 使用するツールを選択してください")
