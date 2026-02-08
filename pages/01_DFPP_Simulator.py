@@ -186,8 +186,11 @@ else:
         f"{loss_alb_mass:.0f} g", 
         f"補充目安: {bottles_needed} 本 (20% 50mL)", 
         delta_color="inverse",
-        help="この量を補充液に混ぜて戻す必要があります"
+        help="計算式: 処理量(L) × 治療前Alb(g/L) × (1 - Alb SC)" # 👈 ツールチップにも式を追加
     )
+    
+    # ✅ 追加: 計算根拠のキャプション表示
+    st.caption(f"ℹ️ Alb喪失計算 = 処理量 {v_treated:.1f}L × 濃度 {pre_alb*10:.0f}g/L × 喪失率 {1-sc_alb:.2f} (SC={sc_alb})")
     
     st.info(f"📋 **処方目安** ({target_time_hr}時間): QP **{req_qp:.0f}** mL/min / QD **{req_qd:.1f}** mL/min / 置換液 **{total_waste_vol:.1f}** L")
 
