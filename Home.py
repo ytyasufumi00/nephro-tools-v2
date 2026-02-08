@@ -115,6 +115,12 @@ st.page_link("pages/04_sodium_calc.py",
     use_container_width=True
 )
 
+st.page_link("pages/09_ICLS.py", 
+    label="**ICLS**\n\nICSLインストラクター向け", 
+    icon="🧂", 
+    use_container_width=True
+)
+
 st.markdown("""
 <br>
 <small style="color:gray">
