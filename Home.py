@@ -116,7 +116,7 @@ st.page_link("pages/04_sodium_calc.py",
 )
 
 st.page_link("pages/09_ICLS.py", 
-    label="**ICLS**\n\nICSLインストラクター向け", 
+    label="****\n\n", 
     icon="🧂", 
     use_container_width=True
 )
