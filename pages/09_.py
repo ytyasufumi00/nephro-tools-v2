@@ -1,7 +1,7 @@
 import streamlit as st
 
 # ==============================================================================
-# 1. コンテンツデータ (内容は維持)
+# 1. コンテンツデータ (変更なし)
 # ==============================================================================
 ICLS_DATA = {
     "⚡ 不整脈": [
@@ -326,7 +326,7 @@ ICLS_DATA = {
 }
 
 # ==============================================================================
-# 2. アプリケーション設定・UI構築
+# 2. アプリケーション設定・レスポンシブグリッド構築
 # ==============================================================================
 def main():
     st.set_page_config(
@@ -335,24 +335,79 @@ def main():
         layout="wide"
     )
 
-    # セッション状態の初期化（選択されたカテゴリを記憶する）
+    # セッション状態の初期化
     if 'selected_category' not in st.session_state:
         st.session_state.selected_category = list(ICLS_DATA.keys())[0]
 
-    # CSS調整：ボタンの余白を詰め、押しやすくする
+    # ------------------------------------------------------------------
+    # CSSによるレスポンシブデザイン（ここが重要）
+    # ------------------------------------------------------------------
+    # 解説:
+    # 1. flex-wrap: wrap ... カラムを折り返し可能にする
+    # 2. @media (max-width: 640px) ... スマホ幅のとき
+    # 3. width: 33.33% ... 3列にする
+    # 4. @media (min-width: 641px) ... PC幅のとき
+    # 5. width: 25% ... 4列にする
+    # ------------------------------------------------------------------
     st.markdown("""
         <style>
+            /* 全体の余白調整 */
             .block-container {
                 padding-top: 1rem;
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
             }
+            
+            /* カラムの親コンテナ（水平ブロック）を折り返し可能にする */
+            [data-testid="stHorizontalBlock"] {
+                flex-wrap: wrap !important;
+                gap: 0.3rem !important; /* ボタン間の隙間 */
+            }
+            
+            /* 各カラム（ボタンの入れ物）の幅制御 */
+            [data-testid="column"] {
+                flex: 1 1 auto !important;
+                min-width: 0 !important;
+                margin-bottom: 0px !important;
+            }
+
+            /* --- スマホ画面 (幅640px以下) --- */
+            @media (max-width: 640px) {
+                [data-testid="column"] {
+                    /* 3列表示（約33%） */
+                    width: 32% !important;
+                    max-width: 32% !important;
+                    flex: 0 0 32% !important;
+                }
+                /* ボタンの文字サイズ極小化 */
+                div.stButton > button {
+                    font-size: 10px !important;
+                    padding: 0px 2px !important;
+                    height: 45px !important;
+                    white-space: normal !important; /* 文字の折り返し許可 */
+                    line-height: 1.1 !important;
+                }
+            }
+
+            /* --- PC/タブレット画面 (幅641px以上) --- */
+            @media (min-width: 641px) {
+                [data-testid="column"] {
+                    /* 4列表示（25%） */
+                    width: 24% !important;
+                    max-width: 24% !important;
+                    flex: 0 0 24% !important;
+                }
+                 div.stButton > button {
+                    font-size: 14px !important;
+                    height: 50px !important;
+                }
+            }
+            
+            /* ボタン共通スタイル */
             div.stButton > button {
                 width: 100%;
-                padding: 0.25rem 0.5rem;
-                font-size: 0.85rem;
                 border-radius: 8px;
-                height: 3.5em; /* ボタンの高さを揃える */
+                border: 1px solid #ccc;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -360,29 +415,23 @@ def main():
     st.title("🚑 ICLS Instructor Guide")
 
     # ---------------------------------------------------------
-    # 3列グリッドでボタンを配置するロジック
+    # カテゴリボタンの生成（レスポンシブ）
     # ---------------------------------------------------------
     categories = list(ICLS_DATA.keys())
     
-    # 3列のカラムを作成し、行ごとに処理する
-    cols_per_row = 3
-    
-    # カテゴリリストを3つずつの塊（チャンク）に分割してループ
-    for i in range(0, len(categories), cols_per_row):
-        cols = st.columns(cols_per_row)
-        
-        # 各行の中での列処理
-        for j in range(cols_per_row):
-            if i + j < len(categories):
-                cat_name = categories[i + j]
-                
-                with cols[j]:
-                    # 現在選択されているカテゴリなら色を変える（primary）
-                    btn_type = "primary" if st.session_state.selected_category == cat_name else "secondary"
-                    
-                    if st.button(cat_name, type=btn_type, use_container_width=True):
-                        st.session_state.selected_category = cat_name
-                        st.rerun() # 画面を再読み込みして表示を更新
+    # Python側では「全カテゴリ数分のカラム」を1行で作成する
+    # CSSでこれを折り返すように制御している
+    cols = st.columns(len(categories))
+
+    for i, cat_name in enumerate(categories):
+        with cols[i]:
+            # 現在選択されているカテゴリなら色を変える
+            btn_type = "primary" if st.session_state.selected_category == cat_name else "secondary"
+            
+            # キーを指定してボタンの重複エラーを防ぐ
+            if st.button(cat_name, key=f"btn_{i}", type=btn_type, use_container_width=True):
+                st.session_state.selected_category = cat_name
+                st.rerun()
 
     st.markdown("---")
 
@@ -391,8 +440,8 @@ def main():
     # ---------------------------------------------------------
     current_cat = st.session_state.selected_category
     
-    # ヘッダー表示（少し小さめに）
-    st.markdown(f"### {current_cat}")
+    # スマホで見やすいようにヘッダーの文字サイズも少し調整
+    st.markdown(f"##### {current_cat}")
     
     if current_cat in ICLS_DATA:
         items = ICLS_DATA[current_cat]
