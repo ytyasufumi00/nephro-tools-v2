@@ -1,7 +1,7 @@
 import streamlit as st
 
 # ==============================================================================
-# 1. コンテンツデータ (大項目を細分化して再配置)
+# 1. コンテンツデータ (内容は維持)
 # ==============================================================================
 ICLS_DATA = {
     "⚡ 不整脈": [
@@ -295,7 +295,7 @@ ICLS_DATA = {
             """
         }
     ],
-    "👶 その他(特殊)": [
+    "👶 その他": [
         {
             "title": "妊産婦・小児",
             "text": """
@@ -309,7 +309,7 @@ ICLS_DATA = {
             """
         }
     ],
-    "📘 ガイドライン": [
+    "📘 GL": [
         {
             "title": "JRC2025・地域GL",
             "text": """
@@ -335,43 +335,70 @@ def main():
         layout="wide"
     )
 
-    # CSSハック: ボタン（タブ）のフォントサイズを小さくし、余白を詰める
+    # セッション状態の初期化（選択されたカテゴリを記憶する）
+    if 'selected_category' not in st.session_state:
+        st.session_state.selected_category = list(ICLS_DATA.keys())[0]
+
+    # CSS調整：ボタンの余白を詰め、押しやすくする
     st.markdown("""
         <style>
-            /* タブ（ボタン）のスタイル調整 */
-            .stTabs [data-baseweb="tab"] {
-                font-size: 11px; /* スマホ向けに小さく */
-                padding: 4px 8px; /* 余白を詰める */
-                min-height: 40px; /* 高さも少し抑える */
-                white-space: nowrap; /* 折り返しなし */
-            }
-            /* 選択されたタブの強調 */
-            .stTabs [aria-selected="true"] {
-                background-color: #e3f2fd;
-                border-bottom: 2px solid #1976d2;
-                font-weight: bold;
-            }
-            /* 全体の余白調整 */
             .block-container {
                 padding-top: 1rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            div.stButton > button {
+                width: 100%;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.85rem;
+                border-radius: 8px;
+                height: 3.5em; /* ボタンの高さを揃える */
             }
         </style>
     """, unsafe_allow_html=True)
 
     st.title("🚑 ICLS Instructor Guide")
 
-    # タブ（ボタン）の生成
-    category_list = list(ICLS_DATA.keys())
-    tabs = st.tabs(category_list)
+    # ---------------------------------------------------------
+    # 3列グリッドでボタンを配置するロジック
+    # ---------------------------------------------------------
+    categories = list(ICLS_DATA.keys())
+    
+    # 3列のカラムを作成し、行ごとに処理する
+    cols_per_row = 3
+    
+    # カテゴリリストを3つずつの塊（チャンク）に分割してループ
+    for i in range(0, len(categories), cols_per_row):
+        cols = st.columns(cols_per_row)
+        
+        # 各行の中での列処理
+        for j in range(cols_per_row):
+            if i + j < len(categories):
+                cat_name = categories[i + j]
+                
+                with cols[j]:
+                    # 現在選択されているカテゴリなら色を変える（primary）
+                    btn_type = "primary" if st.session_state.selected_category == cat_name else "secondary"
+                    
+                    if st.button(cat_name, type=btn_type, use_container_width=True):
+                        st.session_state.selected_category = cat_name
+                        st.rerun() # 画面を再読み込みして表示を更新
 
-    # 各タブ内のコンテンツ描画
-    for i, category in enumerate(category_list):
-        with tabs[i]:
-            # st.header(f"{category}") # 省略して画面を広く使う
-            items = ICLS_DATA[category]
-            for item in items:
-                with st.expander(f"📌 {item['title']}", expanded=False):
-                    st.markdown(item['text'])
+    st.markdown("---")
+
+    # ---------------------------------------------------------
+    # 選択されたカテゴリの内容を描画
+    # ---------------------------------------------------------
+    current_cat = st.session_state.selected_category
+    
+    # ヘッダー表示（少し小さめに）
+    st.markdown(f"### {current_cat}")
+    
+    if current_cat in ICLS_DATA:
+        items = ICLS_DATA[current_cat]
+        for item in items:
+            with st.expander(f"📌 {item['title']}", expanded=False):
+                st.markdown(item['text'])
 
 if __name__ == "__main__":
     main()
