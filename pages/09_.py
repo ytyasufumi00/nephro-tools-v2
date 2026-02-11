@@ -326,7 +326,7 @@ ICLS_DATA = {
 }
 
 # ==============================================================================
-# 2. アプリケーション設定・スマホ用グリッド強制CSS
+# 2. アプリケーション設定・強力なCSSハック
 # ==============================================================================
 def main():
     st.set_page_config(
@@ -340,75 +340,99 @@ def main():
         st.session_state.selected_category = list(ICLS_DATA.keys())[0]
 
     # ------------------------------------------------------------------
-    # CSS: スマホでの縦1列強制解除のハック
+    # CSS: スマホでの縦1列強制解除 (Powerful Hack)
     # ------------------------------------------------------------------
     st.markdown("""
         <style>
-            /* 1. コンテナの余白調整 */
+            /* 余白の調整 */
             .block-container {
-                padding-top: 0.5rem;
-                padding-left: 0.2rem;
-                padding-right: 0.2rem;
+                padding-top: 1rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
             }
 
-            /* 2. ボタンのデザイン（スマホで文字が収まるように調整） */
+            /* --- ボタンのデザイン調整 --- */
             div.stButton > button {
                 width: 100%;
                 padding: 0px 2px !important;
-                font-size: 11px !important; /* 文字サイズ小さく */
+                font-size: 10px !important; /* 文字を小さくして収める */
                 font-weight: bold !important;
-                height: 45px !important;    /* 高さ固定 */
-                white-space: normal !important; /* 文字の折り返し許可 */
+                height: 50px !important;    /* 高さ固定 */
+                white-space: normal !important; /* 折り返し許可 */
+                word-wrap: break-word !important;
                 line-height: 1.1 !important;
                 border-radius: 6px !important;
             }
 
-            /* 3. 【重要】スマホでもカラムをスタックさせない設定 */
-            /* Streamlitのカラム要素(div[data-testid="column"])を強制的に横並びにする */
+            /* --- グリッドレイアウトの強制 (ここが核心) --- */
             
-            [data-testid="column"] {
-                width: 33.33% !important;   /* 3列強制 */
-                flex: 1 1 33.33% !important;
-                min-width: 0px !important;  /* これがないとスマホで縦積みになる */
-                padding: 0 1px !important;  /* カラム間の隙間を詰める */
-            }
-            
-            /* カラムの親コンテナのギャップを詰める */
+            /* Streamlitのカラムコンテナを強制的に横並び（Row）にする */
             [data-testid="stHorizontalBlock"] {
-                gap: 0.2rem !important;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                gap: 4px !important;
+                align-items: stretch !important;
+            }
+
+            /* 個々のカラム（ボタンの入れ物）の設定 */
+            [data-testid="column"] {
+                display: flex !important;
+                flex-direction: column !important;
+                min-width: 0 !important; /* これがないと縮まない */
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* --- レスポンシブ設定: スマホで3列、PCで4列 --- */
+            
+            /* スマホ (幅640px以下): 3列 */
+            @media (max-width: 640px) {
+                [data-testid="column"] {
+                    width: 32% !important;
+                    flex: 0 0 32% !important;
+                    max-width: 32% !important;
+                }
+            }
+
+            /* PC/タブレット (幅641px以上): 4列 */
+            @media (min-width: 641px) {
+                [data-testid="column"] {
+                    width: 24% !important;
+                    flex: 0 0 24% !important;
+                    max-width: 24% !important;
+                }
+                 div.stButton > button {
+                    font-size: 14px !important;
+                }
             }
 
         </style>
     """, unsafe_allow_html=True)
 
     st.title("🚑 ICLS Instructor Guide")
+    st.caption("指導の要点・あんちょこ")
 
     # ---------------------------------------------------------
-    # 3列グリッド描画ループ
+    # グリッド生成ロジック
     # ---------------------------------------------------------
     categories = list(ICLS_DATA.keys())
     
-    # 3つずつ取り出して行を作る
-    # スマホで「縦に並ぶ」のを防ぐため、st.columns(3) をループで生成し、
-    # 上記CSSで強制的に幅33%を指定しています。
+    # ここでは単純に「全ボタンを1つの巨大な横並びブロック」に入れて、
+    # CSSの flex-wrap で折り返させる手法を使います。
+    # これにより、Python側で3つごとに区切る必要がなくなり、
+    # CSSだけで列数を制御（3列or4列）できるようになります。
     
-    cols_per_row = 3
+    cols = st.columns(len(categories))
     
-    for i in range(0, len(categories), cols_per_row):
-        # 3つのカラムを作成
-        cols = st.columns(cols_per_row)
-        
-        # カラムの中にボタンを配置
-        for j in range(cols_per_row):
-            if i + j < len(categories):
-                cat_name = categories[i + j]
-                with cols[j]:
-                    # 選択状態ならPrimary色
-                    btn_type = "primary" if st.session_state.selected_category == cat_name else "secondary"
-                    
-                    if st.button(cat_name, key=f"btn_{i+j}", type=btn_type, use_container_width=True):
-                        st.session_state.selected_category = cat_name
-                        st.rerun()
+    for i, cat_name in enumerate(categories):
+        with cols[i]:
+            # 選択状態ならPrimary色
+            btn_type = "primary" if st.session_state.selected_category == cat_name else "secondary"
+            
+            if st.button(cat_name, key=f"btn_{i}", type=btn_type, use_container_width=True):
+                st.session_state.selected_category = cat_name
+                st.rerun()
 
     st.markdown("---")
 
