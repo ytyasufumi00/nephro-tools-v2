@@ -492,9 +492,11 @@ BLSガイドラインの「中断は10秒以内」という数字は、「10秒�
             3.  **Constructive Intervention:** 建設的介入。
             """
         },
-        {
-            "title": リーダー交代の妙,
+     {
+            "title": "2重連続除細動 (DSD)",
             "text": """
+            **【Double Sequential Defibrillation】**
+            * 難治性VFに対し、2台の除細動器で「前側」「前後」にパッドを貼り、連続ショックを行う手法。
             """
         }
     ],
