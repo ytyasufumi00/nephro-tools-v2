@@ -8,8 +8,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ★追加：Streamlitの根本設定を「英語(en)」から「日本語(ja)」に強制書き換えする
-RUN sed -i 's/lang="en"/lang="ja"/g' /usr/local/lib/python3.13/site-packages/streamlit/static/index.html
 
 # アプリケーションのコード（Home.pyなど）をすべてコピー
 COPY . .
