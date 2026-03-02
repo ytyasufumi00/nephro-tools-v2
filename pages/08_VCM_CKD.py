@@ -100,17 +100,17 @@ def auto_calc_recommendation():
     患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
     """
     w = st.session_state.get('weight_input', 60.0)
-    # 【修正】デフォルト値をラジオボタンの選択肢名に合わせる
-    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算(推奨)")
+    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算　(💡推奨)")
     
     ccr_est = 0.0
-    # 【修正】条件分岐の文字列をラジオボタンの選択肢名に合わせる
-    if mode == "年齢・性別・Creから計算(推奨)":
+    # ✅修正: 文字列が完全一致でなくても「計算」という文字が含まれていればOKにする
+    if "計算" in mode:
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
-        val = ((140 - a) * w) / (72 * c)
-        ccr_est = val * 0.85 if s == "女性" else val
+        if c > 0:
+            val = ((140 - a) * w) / (72 * c)
+            ccr_est = val * 0.85 if s == "女性" else val
     else:
         ccr_est = st.session_state.get('egfr_input_val', 45.0)
 
@@ -166,13 +166,14 @@ input_mode = st.sidebar.radio(
 
 ccr_for_sim = 0.0
 
-# 【修正】条件分岐の文字列をラジオボタンの選択肢名に合わせる
-if input_mode == "年齢・性別・Creから計算(推奨)":
+# ✅修正: 同様に「計算」が含まれているかで判定
+if "計算" in input_mode:
     age = st.sidebar.number_input("年齢", 18, 100, 70, key='age_input', on_change=auto_calc_recommendation)
     sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True, key='sex_input', on_change=auto_calc_recommendation)
     cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1, key='cr_input', on_change=auto_calc_recommendation)
 
     def calc_ccr(age, sex, cr, weight):
+        if cr <= 0: return 0
         val = ((140 - age) * weight) / (72 * cr)
         return val * 0.85 if sex == "女性" else val
 
