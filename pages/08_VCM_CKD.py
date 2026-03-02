@@ -3,6 +3,10 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+# --- 選択肢を変数化 (文字のズレによるバグを完全防止) ---
+MODE_CALC = "年齢・性別・Creから計算 (💡推奨)"
+MODE_EGFR = "eGFRを直接入力 (要BSA補正)"
+
 # ==========================================
 # 1. 計算ロジック (保存期CKD VCM)
 # ==========================================
@@ -100,11 +104,10 @@ def auto_calc_recommendation():
     患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
     """
     w = st.session_state.get('weight_input', 60.0)
-    mode = st.session_state.get('input_mode', "年齢・性別・Creから計算　(💡推奨)")
+    mode = st.session_state.get('input_mode', MODE_CALC) # ✅ 変数を使用
     
     ccr_est = 0.0
-    # ✅修正: 文字列が完全一致でなくても「計算」という文字が含まれていればOKにする
-    if "計算" in mode:
+    if mode == MODE_CALC: # ✅ 変数で完全一致判定
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
@@ -160,14 +163,14 @@ weight = st.sidebar.number_input(
 )
 
 input_mode = st.sidebar.radio(
-    "腎機能入力方法", ["年齢・性別・Creから計算　(💡推奨)", "eGFRを直接入力(要BSA補正)"],
+    "腎機能入力方法", [MODE_CALC, MODE_EGFR], # ✅ 変数を使用
     key='input_mode', on_change=auto_calc_recommendation
 )
 
 ccr_for_sim = 0.0
 
-# ✅修正: 同様に「計算」が含まれているかで判定
-if "計算" in input_mode:
+# ✅ 変数で完全一致判定 (これで絶対にズレません)
+if input_mode == MODE_CALC:
     age = st.sidebar.number_input("年齢", 18, 100, 70, key='age_input', on_change=auto_calc_recommendation)
     sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True, key='sex_input', on_change=auto_calc_recommendation)
     cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1, key='cr_input', on_change=auto_calc_recommendation)
