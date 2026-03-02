@@ -5,6 +5,8 @@ st.set_page_config(
     page_title="信州上田医療センター\n腎臓内科 Tools",
     page_icon="🏥",
 )
+# Googleの自動翻訳機能を無効化する
+st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
 # --- 2. スタイル設定 (ボタン拡大・装飾) ---
 st.markdown("""
