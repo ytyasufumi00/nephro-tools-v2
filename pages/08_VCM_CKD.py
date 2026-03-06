@@ -115,7 +115,14 @@ def auto_calc_recommendation():
             val = ((140 - a) * w) / (72 * c)
             ccr_est = val * 0.85 if s == "女性" else val
     else:
-        ccr_est = st.session_state.get('egfr_input_val', 45.0)
+        # eGFR入力時のBSA補正を反映
+        egfr = st.session_state.get('egfr_input_val', 45.0)
+        h = st.session_state.get('height_input', 0.0)
+        if h > 0:
+            bsa = 0.007184 * (w ** 0.425) * (h ** 0.725)
+            ccr_est = egfr * (bsa / 1.73)
+        else:
+            ccr_est = egfr
 
     # 推奨設計
     if ccr_est > 60: rec_int = 12
@@ -187,11 +194,26 @@ if input_mode == MODE_CALC:
     ccr_for_sim = ccr_calc 
 else:
     egfr_input = st.sidebar.number_input(
-        "eGFR (mL/min)", 0.0, 150.0, 45.0, 1.0, 
+        "eGFR (mL/min/1.73m²)", 0.0, 150.0, 45.0, 1.0, 
         key='egfr_input_val', on_change=auto_calc_recommendation
     )
-    st.sidebar.info(f"🧬 入力値 **{egfr_input:.1f}** を腎機能指標として使用")
-    ccr_for_sim = egfr_input 
+    
+    # ✅ 身長入力フィールドの追加（BSA補正用）
+    height_input = st.sidebar.number_input(
+        "身長 (cm) [任意]", 0.0, 250.0, 0.0, 1.0,
+        help="入力するとDuBois式で体表面積(BSA)を計算し、個別化eGFR(mL/min/body)に補正します。",
+        key='height_input', on_change=auto_calc_recommendation
+    )
+    
+    if height_input > 0:
+        # DuBois式でのBSA計算
+        bsa = 0.007184 * (weight ** 0.425) * (height_input ** 0.725)
+        egfr_body = egfr_input * (bsa / 1.73)
+        st.sidebar.info(f"📐 **BSA:** {bsa:.2f} m²\n\n🧬 **補正eGFR:** {egfr_body:.1f} mL/min/body\n\n(シミュレーションに使用)")
+        ccr_for_sim = egfr_body
+    else:
+        st.sidebar.info(f"🧬 入力値 **{egfr_input:.1f}** をそのまま腎機能指標として使用\n\n(身長を入力するとBSA補正されます)")
+        ccr_for_sim = egfr_input
 
 
 # --- サイドバー: 投与設定 (個別入力) ---
