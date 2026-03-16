@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # --- 選択肢を変数化 ---
-MODE_CALC_ADULT = "年齢・性別・Creから計算 (成人)"
+MODE_CALC_ADULT = "年齢・性別・体重・Creから計算 (成人)"
 MODE_CALC_PEDS  = "身長・Creから計算 (小児: Schwartz式)"
 MODE_EGFR       = "eGFRを直接入力 (要BSA補正)"
 
