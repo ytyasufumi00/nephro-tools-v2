@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-# --- 選択肢を変数化 (文字のズレによるバグを完全防止) ---
-MODE_CALC = "年齢・性別・Creから計算 (💡推奨)"
-MODE_EGFR = "eGFRを直接入力 (要BSA補正)"
+# --- 選択肢を変数化 ---
+MODE_CALC_ADULT = "年齢・性別・Creから計算 (成人)"
+MODE_CALC_PEDS  = "身長・Creから計算 (小児: Schwartz式)"
+MODE_EGFR       = "eGFRを直接入力 (要BSA補正)"
 
 # ==========================================
 # 1. 計算ロジック (保存期CKD VCM)
@@ -84,7 +85,7 @@ def fit_kel_from_measured(target_val, measured_hour, weight, dose_list, interval
 # 2. UI & アプリケーション
 # ==========================================
 st.set_page_config(page_title="VCM CKD Sim", layout="wide")
-st.title("💊 VCM 投与設計 (保存期CKD)")
+st.title("💊 VCM 投与設計 (成人/小児 対応版)")
 
 st.markdown("""
 <style>
@@ -100,43 +101,66 @@ NUM_SLOTS = 14
 
 # --- 自動計算コールバック関数 ---
 def auto_calc_recommendation():
-    """
-    患者情報が変更されたときに呼ばれ、推奨投与量・間隔を計算して更新
-    """
+    """患者情報変更時に推奨投与量・間隔を計算して更新"""
     w = st.session_state.get('weight_input', 60.0)
-    mode = st.session_state.get('input_mode', MODE_CALC) # ✅ 変数を使用
+    h = st.session_state.get('height_input', 0.0)
+    mode = st.session_state.get('input_mode', MODE_CALC_ADULT) 
     
     ccr_est = 0.0
-    if mode == MODE_CALC: # ✅ 変数で完全一致判定
+    bsa = 0.0
+    if h > 0:
+        bsa = 0.007184 * (w ** 0.425) * (h ** 0.725)
+
+    # 腎機能の推定
+    if mode == MODE_CALC_ADULT:
         a = st.session_state.get('age_input', 70)
         s = st.session_state.get('sex_input', "男性")
         c = st.session_state.get('cr_input', 1.2)
         if c > 0:
             val = ((140 - a) * w) / (72 * c)
             ccr_est = val * 0.85 if s == "女性" else val
+            
+    elif mode == MODE_CALC_PEDS:
+        c_peds = st.session_state.get('cr_input_peds', 0.5)
+        if c_peds > 0 and h > 0:
+            egfr_peds = 0.413 * h / c_peds
+            ccr_est = egfr_peds * (bsa / 1.73) # シミュレーション用の絶対的クリアランス
+            
     else:
-        # eGFR入力時のBSA補正を反映
         egfr = st.session_state.get('egfr_input_val', 45.0)
-        h = st.session_state.get('height_input', 0.0)
         if h > 0:
-            bsa = 0.007184 * (w ** 0.425) * (h ** 0.725)
             ccr_est = egfr * (bsa / 1.73)
         else:
             ccr_est = egfr
 
-    # 推奨設計
-    if ccr_est > 60: rec_int = 12
-    elif 40 <= ccr_est <= 60: rec_int = 24
-    elif 20 <= ccr_est < 40: rec_int = 48
-    else: rec_int = 72
-    
-    rec_load = w * 20.0
-    rec_load = round(rec_load / 100) * 100
-    if rec_load > 2500: rec_load = 2500.0
-    
-    rec_maint = w * 15.0
-    rec_maint = round(rec_maint / 100) * 100
-    if rec_maint > 2000: rec_maint = 2000.0
+    # 推奨投与設計
+    if mode == MODE_CALC_PEDS:
+        # 👶 小児用ロジック (1回15mg/kg)
+        if ccr_est >= 90: rec_int = 6
+        elif 60 <= ccr_est < 90: rec_int = 8
+        elif 30 <= ccr_est < 60: rec_int = 12
+        else: rec_int = 24
+            
+        rec_dose = round((w * 15.0) / 10) * 10.0 # 10mg単位で丸め
+        if rec_dose > 1000.0: rec_dose = 1000.0 # 最大1000mg
+            
+        rec_load = rec_dose
+        rec_maint = rec_dose
+
+    else:
+        # 🧑 成人用ロジック
+        if ccr_est > 60: rec_int = 12
+        elif 40 <= ccr_est <= 60: rec_int = 24
+        elif 20 <= ccr_est < 40: rec_int = 48
+        else: rec_int = 72
+        
+        rec_load = w * 20.0
+        rec_load = round(rec_load / 100) * 100
+        if rec_load > 2500: rec_load = 2500.0
+        
+        rec_maint = w * 15.0
+        rec_maint = round(rec_maint / 100) * 100
+        if rec_maint > 2000: rec_maint = 2000.0
     
     st.session_state['interval_input'] = rec_int
     st.session_state['ckd_dose_1'] = float(rec_load)
@@ -165,51 +189,62 @@ def update_dose_cascade(target_key, increment):
 st.sidebar.header("1. 患者情報")
 
 weight = st.sidebar.number_input(
-    "体重 (kg)", 30.0, 150.0, 60.0, 1.0, 
+    "体重 (kg)", 1.0, 150.0, 60.0, 0.1, 
     key='weight_input', on_change=auto_calc_recommendation
 )
 
+height_input = st.sidebar.number_input(
+    "身長 (cm) [任意 / 小児は必須]", 0.0, 250.0, 0.0, 1.0,
+    help="入力するとDuBois式で体表面積(BSA)を計算します。小児モードでは必須です。",
+    key='height_input', on_change=auto_calc_recommendation
+)
+
+bsa = 0.0
+if height_input > 0:
+    bsa = 0.007184 * (weight ** 0.425) * (height_input ** 0.725)
+    st.sidebar.info(f"📐 **体表面積 (BSA):** {bsa:.2f} m²")
+
 input_mode = st.sidebar.radio(
-    "腎機能入力方法", [MODE_CALC, MODE_EGFR], # ✅ 変数を使用
+    "腎機能入力方法", [MODE_CALC_ADULT, MODE_CALC_PEDS, MODE_EGFR], 
     key='input_mode', on_change=auto_calc_recommendation
 )
 
 ccr_for_sim = 0.0
 
-# ✅ 変数で完全一致判定 (これで絶対にズレません)
-if input_mode == MODE_CALC:
+if input_mode == MODE_CALC_ADULT:
     age = st.sidebar.number_input("年齢", 18, 100, 70, key='age_input', on_change=auto_calc_recommendation)
     sex = st.sidebar.radio("性別", ["男性", "女性"], horizontal=True, key='sex_input', on_change=auto_calc_recommendation)
     cr = st.sidebar.number_input("Cr (mg/dL)", 0.3, 15.0, 1.2, 0.1, key='cr_input', on_change=auto_calc_recommendation)
 
-    def calc_ccr(age, sex, cr, weight):
-        if cr <= 0: return 0
+    if cr > 0:
         val = ((140 - age) * weight) / (72 * cr)
-        return val * 0.85 if sex == "女性" else val
+        ccr_calc = val * 0.85 if sex == "女性" else val
+        eGFR_calc = 194 * (cr**-1.094) * (age**-0.287) * (0.739 if sex == "女性" else 1.0)
+        st.sidebar.info(f"🧬 **CCr:** {ccr_calc:.1f} mL/min\n\n(推定eGFR: {eGFR_calc:.1f})")
+        ccr_for_sim = ccr_calc 
 
-    ccr_calc = calc_ccr(age, sex, cr, weight)
-    eGFR_calc = 194 * (cr**-1.094) * (age**-0.287) * (0.739 if sex == "女性" else 1.0)
+elif input_mode == MODE_CALC_PEDS:
+    st.sidebar.warning("⚠️ **注意:** この小児用ロジックは生後1ヶ月以上の小児を想定しています。**新生児（日齢28日未満）には適用しないでください。**")
+    st.sidebar.caption("※改訂Schwartz式 (k=0.413) を使用します")
+    cr_peds = st.sidebar.number_input("Cr (mg/dL)", 0.1, 10.0, 0.5, 0.1, key='cr_input_peds', on_change=auto_calc_recommendation)
     
-    st.sidebar.info(f"🧬 **CCr: {ccr_calc:.1f} mL/min**\n\n(eGFR: {eGFR_calc:.1f})")
-    ccr_for_sim = ccr_calc 
+    if height_input > 0 and cr_peds > 0:
+        egfr_peds = 0.413 * height_input / cr_peds
+        ccr_peds = egfr_peds * (bsa / 1.73)
+        st.sidebar.info(f"🧬 **推定eGFR:** {egfr_peds:.1f} mL/min/1.73m²\n\n🧬 **絶対的クリアランス:** {ccr_peds:.1f} mL/min\n\n(シミュレーションに使用)")
+        ccr_for_sim = ccr_peds
+    else:
+        st.sidebar.error("⚠️ 身長とCrを入力してください")
+
 else:
     egfr_input = st.sidebar.number_input(
         "eGFR (mL/min/1.73m²)", 0.0, 150.0, 45.0, 1.0, 
         key='egfr_input_val', on_change=auto_calc_recommendation
     )
     
-    # ✅ 身長入力フィールドの追加（BSA補正用）
-    height_input = st.sidebar.number_input(
-        "身長 (cm) [任意]", 0.0, 250.0, 0.0, 1.0,
-        help="入力するとDuBois式で体表面積(BSA)を計算し、個別化eGFR(mL/min/body)に補正します。",
-        key='height_input', on_change=auto_calc_recommendation
-    )
-    
     if height_input > 0:
-        # DuBois式でのBSA計算
-        bsa = 0.007184 * (weight ** 0.425) * (height_input ** 0.725)
         egfr_body = egfr_input * (bsa / 1.73)
-        st.sidebar.info(f"📐 **BSA:** {bsa:.2f} m²\n\n🧬 **補正eGFR:** {egfr_body:.1f} mL/min/body\n\n(シミュレーションに使用)")
+        st.sidebar.info(f"🧬 **補正eGFR:** {egfr_body:.1f} mL/min/body\n\n(シミュレーションに使用)")
         ccr_for_sim = egfr_body
     else:
         st.sidebar.info(f"🧬 入力値 **{egfr_input:.1f}** をそのまま腎機能指標として使用\n\n(身長を入力するとBSA補正されます)")
@@ -220,9 +255,8 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.header("2. 投与スケジュール")
 
-# 初期表示用 interval (実質 session_state['interval_input'] が使われる)
 interval = st.sidebar.number_input(
-    "投与間隔 (時間)", 12, 168, 24, 12, 
+    "投与間隔 (時間)", 6, 168, 24, 6, 
     key='interval_input'
 )
 infusion_hr = st.sidebar.selectbox("点滴時間", [1.0, 2.0], index=0)
@@ -239,12 +273,13 @@ for i in range(1, NUM_SLOTS + 1):
     
     st.sidebar.markdown(f"**{label}**")
     c1, c2, c3 = st.sidebar.columns([1, 2, 1])
-    with c1: st.button("－", key=f"dec_{key}", on_click=update_dose_cascade, args=(key, -50))
-    with c2: st.number_input(label, key=key, step=50.0, label_visibility="collapsed")
-    with c3: st.button("＋", key=f"inc_{key}", on_click=update_dose_cascade, args=(key, 50))
+    # 小児の細かな調整も想定しステップを10mgに変更
+    with c1: st.button("－", key=f"dec_{key}", on_click=update_dose_cascade, args=(key, -10))
+    with c2: st.number_input(label, key=key, step=10.0, label_visibility="collapsed")
+    with c3: st.button("＋", key=f"inc_{key}", on_click=update_dose_cascade, args=(key, 10))
 
 with st.sidebar.expander("詳細PKパラメータ"):
-    vd_pk = st.slider("分布容積 Vd (L/kg)", 0.4, 1.0, 0.7, 0.05)
+    vd_pk = st.slider("分布容積 Vd (L/kg)", 0.4, 1.2, 0.7, 0.05, help="※小児は細胞外液が多くVdが大きくなる傾向があります(0.7〜1.0程度)")
     kel_factor = st.slider("排泄係数補正", 0.5, 1.5, 1.0, 0.1)
 
 # ==========================================
@@ -267,7 +302,6 @@ st.subheader("🩸 TDM解析 / AUC評価")
 
 col_t1, col_t2 = st.columns([1.5, 2.5])
 
-# デフォルト設定: index=1 ("TDM実測値あり")
 has_measured = st.radio("入力モード", ["シミュレーションのみ", "TDM実測値あり"], index=1, horizontal=True, label_visibility="collapsed") == "TDM実測値あり"
 
 sim_fitted = None
@@ -288,8 +322,6 @@ with col_t1:
             sampling_time = t_start_dose + infusion_hr + hours_after
             
         st.caption(f"→ 開始から {sampling_time:.1f} 時間後")
-        
-        # デフォルト: 12.0
         measured_val = st.number_input("実測値 (µg/mL)", 0.0, 100.0, 20.0, 0.1)
     
     st.markdown("---")
@@ -339,7 +371,7 @@ with col_t2:
                 req_daily_dose = daily_dose_equiv
         
         suggest_raw = req_daily_dose / (24 / interval)
-        new_dose = round(suggest_raw / 100) * 100
+        new_dose = round(suggest_raw / 10) * 10 # 提案も10mg単位に丸める
         
         if new_dose != last_dose:
             st.success(f"推奨維持量: **{new_dose} mg** (間隔 {interval}h のまま)")
@@ -416,11 +448,11 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
-with st.expander("📚 目標トラフとMICに関する解説 (Guidelines)", expanded=True):
+with st.expander("📚 目標トラフ濃度・MIC および 自動推奨ロジックに関する解説", expanded=True):
     st.markdown("""
     ### 🎯 目標トラフ濃度 (Target Trough)
     
-    VCMの治療目標は **AUC/MIC $\ge$ 400** ですが、実臨床ではトラフ濃度が代替指標として用いられます。
+    VCMの治療目標は **AUC/MIC ≥ 400** ですが、実臨床ではトラフ濃度が代替指標として用いられます。
     
     | 感染症の重症度 | 目標トラフ濃度 | 備考 |
     | :--- | :--- | :--- |
@@ -430,17 +462,32 @@ with st.expander("📚 目標トラフとMICに関する解説 (Guidelines)", ex
     ---
     ### 🦠 MIC (最小発育阻止濃度) との兼ね合い
     
-    **AUC/MIC $\ge$ 400** を達成できるかどうかが鍵となります。
+    **AUC/MIC ≥ 400** を達成できるかどうかが鍵となります。
     
-    * **MIC $\le$ 1.0 µg/mL の場合:**
+    * **MIC ≤ 1.0 µg/mL の場合:**
         * 通常の目標トラフ (15-20 µg/mL) で十分なAUCが確保できます。
-    
     * **MIC = 2.0 µg/mL の場合 (重要):**
-        * 理論上、AUC/MIC $\ge$ 400 を達成するには **AUC $\ge$ 800** が必要になります。
+        * 理論上、AUC/MIC ≥ 400 を達成するには **AUC ≥ 800** が必要になります。
         * これを達成しようとすると、トラフ濃度を **20 µg/mL 以上** に維持しなければならず、**腎障害や聴覚障害のリスクが著しく増大**します。
         * 💡 **推奨:** VCMの増量で粘るのではなく、**リネゾリド (LZD) や ダプトマイシン (DAP)** など、他の抗MRSA薬への変更を強く推奨します。
     
     ---
-    ### 💡 自動計算機能
-    患者情報を入力すると、体重とCCrに基づいて推奨投与量・間隔が自動でセットされます。
+    ### 💡 アプリの自動計算ロジック
+    
+    #### 🧑 成人の場合
+    * **初回負荷(ローディング):** 体重 × 20 mg (上限 2500 mg)
+    * **維持量:** 体重 × 15 mg (上限 2000 mg)
+    * **投与間隔:** CCr に応じて 12, 24, 48, 72時間 のいずれかを推奨
+    
+    #### 👶 小児の場合 (生後1ヶ月以上)
+    小児は成人と比較して「分布容積（Vd）が大きく、腎排泄（クリアランス）が速い」という特徴があります。
+    * **基本投与量:** 1回 **15 mg/kg** (上限 1000 mg / 回)
+    * **ローディング:** 小児では通常行わず、初回から維持量を用います。
+    * **投与間隔 (CCrベース):** 排泄が早いため、正常腎機能では **6時間ごと** や **8時間ごと** が基本になります。
+        * CCr ≥ 90: 6時間ごと
+        * CCr 60 - 89: 8時間ごと
+        * CCr 30 - 59: 12時間ごと
+        * CCr < 30: 24時間ごと
+    * **注意:** 新生児（生後28日未満）は腎機能の成熟過程にあるため、このロジックは適用できません。
+    * 小児の投与量は細かく調整されることが多いため、アプリ内では 10 mg 単位 で丸めています。
     """)
