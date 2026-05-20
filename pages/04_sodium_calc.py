@@ -5,7 +5,7 @@ import pandas as pd
 def calculate_sodium(
     weight, current_na, current_k,
     urine_vol, urine_na, urine_k,
-    infusion_vol, infusion_na, infusion_k,
+    infusion_vol, infusion_na_total, infusion_k_total,
     diet_water, diet_salt_g,
     stool_water, stool_salt_g,
     insensible_vol,
@@ -17,7 +17,7 @@ def calculate_sodium(
     initial_tbw = weight * gender_factor
     
     # 2. INPUT
-    in_infusion_solutes = (infusion_na + infusion_k) * infusion_vol
+    in_infusion_solutes = infusion_na_total + infusion_k_total
     in_infusion_water = infusion_vol
     in_diet_solutes = (diet_salt_g * SALT_TO_MEQ)
     in_diet_water = diet_water
@@ -51,26 +51,11 @@ st.set_page_config(page_title="Na予測計算", layout="wide")
 # --- CSS設定 (スマホ対応: タイトル文字サイズ調整) ---
 st.markdown("""
     <style>
-    /* スマホ画面（幅600px以下）の時だけ適用される設定 */
     @media (max-width: 600px) {
-        /* タイトル (h1) を小さくする */
-        h1 {
-            font-size: 1.6rem !important;
-            padding-bottom: 0.5rem !important;
-        }
-        /* 見出し (h2) も少し小さく */
-        h2 {
-            font-size: 1.4rem !important;
-            padding-top: 0.5rem !important;
-        }
-        /* サブ見出し (h3) */
-        h3 {
-            font-size: 1.2rem !important;
-        }
-        /* 本文の文字サイズも少し調整 */
-        p, .stMarkdown {
-            font-size: 0.95rem !important;
-        }
+        h1 { font-size: 1.6rem !important; padding-bottom: 0.5rem !important; }
+        h2 { font-size: 1.4rem !important; padding-top: 0.5rem !important; }
+        h3 { font-size: 1.2rem !important; }
+        p, .stMarkdown { font-size: 0.95rem !important; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -84,60 +69,89 @@ if "prev_weight" not in st.session_state:
 if "insensible_val" not in st.session_state:
     st.session_state.insensible_val = 0.9
 
-# --- サイドバー ---
-with st.sidebar:
-    st.header("1. 患者基本情報")
-    
-    def update_insensible():
-        w = st.session_state.weight_input
-        st.session_state.insensible_val = round(w * 15 / 1000, 2)
-        st.session_state.prev_weight = w
+def update_insensible():
+    w = st.session_state.weight_input
+    st.session_state.insensible_val = round(w * 15 / 1000, 2)
+    st.session_state.prev_weight = w
 
+# --- メイン画面 入力セクション ---
+st.divider()
+
+# 1. 患者基本情報
+st.header("1. 患者基本情報")
+col1, col2 = st.columns(2)
+
+with col1:
     weight = st.number_input(
         "体重 (kg)", 
         value=60.0, step=0.1, key="weight_input", on_change=update_insensible
     )
-    gender = st.radio("性別", ["男性 (0.6)", "女性/高齢者 (0.5)"])
+    gender = st.radio("性別", ["男性 (0.6)", "女性/高齢者 (0.5)"], horizontal=True)
     gender_factor = 0.6 if "男性" in gender else 0.5
-    
-    st.subheader("現在の血清値")
+
+with col2:
     current_na = st.number_input("血清 Na (mEq/L)", value=125.0, step=1.0)
     current_k = st.number_input("血清 K (mEq/L)", value=4.0, step=0.1)
 
-    st.divider()
+st.divider()
 
-    st.header("2. インプット (治療)")
+# 2. インプット (治療)
+st.header("2. インプット (治療)")
+col3, col4 = st.columns(2)
+
+with col3:
     st.subheader("補液設定")
     infusion_vol = st.number_input("補液量 (L)", value=2.0, step=0.1)
-    infusion_na = st.number_input("補液中 Na (mEq/L)", value=154.0, step=1.0)
-    infusion_k = st.number_input("補液中 K (mEq/L)", value=0.0, step=1.0)
+    infusion_na_total = st.number_input("補液総 Na量 (mEq/日)", value=308.0, step=10.0)
+    infusion_k_total = st.number_input("補液総 K量 (mEq/日)", value=0.0, step=5.0)
 
-    with st.expander("食事・飲水 (オプション)"):
+with col4:
+    # 事前にデフォルト値を設定しておく（バグ回避）
+    diet_water = 0.0
+    diet_salt_g = 0.0
+    
+    # 食事・飲水オプションをデフォルト最小化
+    with st.expander("🍽️ 食事・飲水 (オプション)", expanded=False):
         diet_water = st.number_input("経口 水分 (L)", value=0.0, step=0.1)
         diet_salt_g = st.number_input("経口 塩分 (g)", value=0.0, step=0.5)
 
-    st.divider()
+st.divider()
 
-    st.header("3. アウトプット (喪失)")
-    st.subheader("不感蒸泄 (Insensible Loss)")
-    insensible_help = "通常: 15mL/kg/日。発熱時: +1℃ごとに +15%増量。"
-    insensible_vol = st.number_input(
-        "不感蒸泄 (L)",
-        value=st.session_state.insensible_val,
-        step=0.1, format="%.2f", help=insensible_help
-    )
-    st.caption(f"基準値(15ml/kg): {round(weight * 0.015, 2)} L")
+# 3. アウトプット (喪失)
+st.header("3. アウトプット (喪失)")
+col5, col6 = st.columns(2)
 
-    st.subheader("尿")
-    urine_vol = st.number_input("予測尿量 (L)", value=1.5, step=0.1)
-    urine_na = st.number_input("尿中 Na (mEq/L)", value=80.0, step=10.0)
-    urine_k = st.number_input("尿中 K (mEq/L)", value=40.0, step=10.0)
+with col5:
+    # 事前に標準値を設定しておく（バグ回避）
+    insensible_vol = st.session_state.insensible_val
+    urine_vol = 1.5
+    urine_na = 80.0
+    urine_k = 40.0
+    
+    # 不感蒸泄・尿オプションをデフォルト最小化
+    with st.expander("💧 不感蒸泄・尿 (標準値設定済)", expanded=False):
+        insensible_help = "通常: 15mL/kg/日。発熱時: +1℃ごとに +15%増量。"
+        insensible_vol = st.number_input(
+            "不感蒸泄 (L)",
+            value=st.session_state.insensible_val,
+            step=0.1, format="%.2f", help=insensible_help
+        )
+        st.caption(f"基準値(15ml/kg): {round(weight * 0.015, 2)} L")
 
-    with st.expander("便・下痢 (オプション)"):
+        urine_vol = st.number_input("予測尿量 (L)", value=1.2, step=0.1)
+        urine_na = st.number_input("尿中 Na (mEq/L)", value=80.0, step=10.0)
+        urine_k = st.number_input("尿中 K (mEq/L)", value=20.0, step=10.0)
+
+with col6:
+    # 事前にデフォルト値を設定しておく（バグ回避）
+    stool_water = 0.0
+    stool_salt_g = 0.0
+    
+    # 便・下痢オプションをデフォルト最小化
+    with st.expander("💩 便・下痢 (オプション)", expanded=False):
         stool_water = st.number_input("便中 水分 (L)", value=0.0, step=0.1)
         stool_salt_g = st.number_input("便中 塩分 (g)", value=0.0, step=0.5)
         
-        # ✅ 追加: 下痢の目安解説
         st.markdown("##### 💡 一般的な下痢の目安")
         st.caption("""
         * **水様便の塩分濃度**: 一般的に Na 30〜100 mEq/L 程度です。
@@ -151,7 +165,7 @@ with st.sidebar:
 pred_na, delta_vol, final_tbw, initial_tbw = calculate_sodium(
     weight, current_na, current_k,
     urine_vol, urine_na, urine_k,
-    infusion_vol, infusion_na, infusion_k,
+    infusion_vol, infusion_na_total, infusion_k_total,
     diet_water, diet_salt_g,
     stool_water, stool_salt_g,
     insensible_vol,
@@ -212,7 +226,7 @@ with st.expander("詳細な収支データを見る", expanded=True):
         "項目": ["水分 (L)", "Na負荷 (mEq)*"],
         "IN (補液+食事)": [
             infusion_vol + diet_water,
-            (infusion_na + infusion_k) * infusion_vol + (diet_salt_g * 17.1)
+            infusion_na_total + infusion_k_total + (diet_salt_g * 17.1)
         ],
         "OUT (尿+便+不感蒸泄)": [
             urine_vol + stool_water + insensible_vol,
