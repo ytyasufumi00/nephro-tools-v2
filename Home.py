@@ -117,6 +117,12 @@ st.page_link("pages/04_sodium_calc.py",
     use_container_width=True
 )
 
+st.page_link("pages/10_Ca_sim.py", 
+    label="**臨床用：イオン化カルシウム（iCa）推定シミュレーター", 
+    icon="🧂", 
+    use_container_width=True
+)
+
 st.markdown("""
 <br>
 <small style="color:gray">
