@@ -2,7 +2,8 @@ import streamlit as st
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
-st.title("CKD-MBD：カルシウム・マルチアングル評価システム(信州上田医療センター腎臓内科作成)")
+# st.title()の代わりに、HTMLタグで直接フォントサイズ（例: 26px）を指定します
+st.markdown('<h2 style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">CKD-MBD：カルシウム・マルチアングル評価システム(信州上田医療センター腎臓内科作成)</h2>', unsafe_allow_html=True)
 st.markdown("### 〜 アルブミン補正公式からイオン化Ca推定へのパラダイムシフト 〜")
 
 # =================================================================
@@ -41,7 +42,7 @@ detailed_ica = 0.219 + (0.365 * t_ca_mmol) - (0.0034 * alb_gl) - (0.0042 * na) +
 
 
 # =================================================================
-# 3. 各バーの可視化関数（文字切れ完全対策版）
+# 3. 各バーの可視化関数（スマホ・タッチ固定対策版）
 # =================================================================
 def draw_bar(val, plot_range, target_range, title, unit, color, show_dual_axis=False):
     fig = go.Figure()
@@ -65,16 +66,17 @@ def draw_bar(val, plot_range, target_range, title, unit, color, show_dual_axis=F
     fig.add_vrect(x0=target_range[0], x1=target_range[1], fillcolor="rgba(0, 255, 0, 0.1)", line_width=0)
     
     # X軸・Y軸の基本設定
-    fig.update_xaxes(title_text=unit, range=plot_range)
-    # 空間の天井を2.5に設定
-    fig.update_yaxes(visible=False, range=[0, 2.5]) 
+    # 【修正1】 fixedrange=True を追加して軸のズーム・スクロールをロック
+    fig.update_xaxes(title_text=unit, range=plot_range, fixedrange=True)
+    fig.update_yaxes(visible=False, range=[0, 2.5], fixedrange=True) 
     
     # 2. レイアウトのベース設定
     layout_args = dict(
         height=200 if show_dual_axis else 140, 
         margin=dict(l=20, r=20, t=80 if show_dual_axis else 40, b=20), 
         title=dict(text=title, font=dict(size=15)),
-        showlegend=False
+        showlegend=False,
+        dragmode=False  # 【修正2】 グラフ上のドラッグ操作を完全に無効化
     )
     
     # 3. 第2軸（上部）の設定とダミートレース
@@ -86,7 +88,8 @@ def draw_bar(val, plot_range, target_range, title, unit, color, show_dual_axis=F
             side="top",
             tickfont=dict(color="gray"),
             showline=True,  
-            visible=True    
+            visible=True,
+            fixedrange=True  # 【修正1】 第2軸もロック
         )
         
         # ダミートレース
@@ -100,7 +103,9 @@ def draw_bar(val, plot_range, target_range, title, unit, color, show_dual_axis=F
         ))
         
     fig.update_layout(**layout_args)
-    st.plotly_chart(fig, use_container_width=True)
+    
+    # 【修正3】 config={'displayModeBar': False} で右上の不要なツールバーアイコンを非表示にする
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # =================================================================
 # 4. メイン画面：4本のバーと数式の交互表示
@@ -108,13 +113,11 @@ def draw_bar(val, plot_range, target_range, title, unit, color, show_dual_axis=F
 st.subheader("📊 各指標の目標値から見た「現在地」と計算ロジック")
 
 # パート1：総Ca
-# 【修正】緑の網掛け目標域を 8.4〜9.5 に変更
 draw_bar(t_ca, [6.0, 12.0], [8.4, 9.5], "1.【ベース】 総カルシウム (tCa)", "mg/dL", "blue")
 st.markdown("` 💡 計算式: 測定値そのまま（日本JSDT参考基準: 8.4〜9.5 mg/dL） `")
 st.write("")
 
 # パート2：補正Ca
-# 【修正】緑の網掛け目標域を 8.4〜9.5 に変更
 draw_bar(corrected_ca, [6.0, 12.0], [8.4, 9.5], "2.【従来意識】 Payne補正カルシウム (Corrected Ca)", "mg/dL", "orange")
 st.markdown("` 💡 計算式: 総Ca + (4.0 - Alb)   ※Alb < 4.0 の時に適用（JSDT目標管理域: 8.4〜9.5 mg/dL） `")
 st.write("")
@@ -145,7 +148,6 @@ with tab_eval:
     # 乖離の臨床アラート
     if detailed_ica < 1.15 and corrected_ca >= 8.4:
         st.warning("⚠️ **【要注意：Payneの罠（潜在的低Ca）】**\n\n補正Caは正常（あるいは高め）に見えますが、高リン血症やアニオン蓄積の影響で、実際のイオン化Caは**低カルシウム血症**の領域に低下している可能性があります。副甲状腺（CaSR）への刺激が強まり、PTHが上昇しやすい病態です。")
-    # 【修正】補正Caが9.5以下の時に変更
     elif detailed_ica > 1.29 and corrected_ca <= 9.5:
         st.error("🚨 **【要注意：潜在的高Ca血症】**\n\n補正Caは上限値以下ですが、生体内では**イオン化高カルシウム血症**の閾値を超えているリスクがあります。血管石灰化を避けるため、カルシウム含有結着薬やビタミンD製剤の調整を考慮すべき現在地です。")
     else:
