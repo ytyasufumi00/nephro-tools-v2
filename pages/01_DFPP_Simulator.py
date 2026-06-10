@@ -117,10 +117,10 @@ def run_simulation():
     if height > 0:
         # 小川の式
         h_m = height / 100.0
-      if sex == "男性":
+        if sex == "男性":
             bv_liter = 0.168 * (h_m**3) + 0.050 * weight + 0.444
         else:
-            bv_liter = 0.250 * (h_m**3) + 0.0625 * weight - 0.662 
+            bv_liter = 0.250 * (h_m**3) + 0.0625 * weight - 0.662
         
         epv = bv_liter * (1 - ht / 100)
         calc_method_name = "小川の式 (Ogawa Formula)"
