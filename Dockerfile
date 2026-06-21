@@ -4,6 +4,10 @@ FROM python:3.13-slim
 # コンテナ内の作業ディレクトリを設定
 WORKDIR /app
 
+# matplotlib(回路図)が日本語を描画できるよう、CJKフォントを導入
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
 # 必要なパッケージの一覧をコピーしてインストール
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

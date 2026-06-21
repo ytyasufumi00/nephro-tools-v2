@@ -69,9 +69,15 @@ st.page_link("pages/02_sepe_simulator.py",
     use_container_width=True
 )
 
-st.page_link("pages/05_Overdose_Sim.py", 
-    label="**Overdose Simulation**\n\n薬物過量投与時の透析除去シミュレーション", 
-    icon="🚑", 
+st.page_link("pages/05_Overdose_Sim.py",
+    label="**Overdose Simulation**\n\n薬物過量投与時の透析除去シミュレーション",
+    icon="🚑",
+    use_container_width=True
+)
+
+st.page_link("pages/11_CHDF_Simulator.py",
+    label="**CHDF Simulator**\n\n持続的血液濾過透析(CHDF)の流量設定と除去率体感（研修医教育用）",
+    icon="🩸",
     use_container_width=True
 )
 
