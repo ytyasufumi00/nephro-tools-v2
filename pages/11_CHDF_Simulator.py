@@ -365,6 +365,15 @@ for q in qf_range:
     p, *_ = simulate_removal_pct(weight, v1_pk, v2_pk, qic_pk, cl_tmp["cl_total"], dt=2.0)
     pct_vs_qf.append(p)
 
+# QDとQFのグラフで縦軸(除去率%)のスケールを揃える。
+# 物質によっては拡散(QD)と濾過(QF)で効き方が何倍も違うため、軸を独立に自動調整すると
+# 「どちらも同じくらい効いている」ように見えてしまい誤解を招く。同じレンジで描くことで、
+# 拡散と濾過のどちらがどれだけ効くかを正しく比較できるようにする。
+y_all = pct_vs_qd + pct_vs_qf + [pct_removed]
+y_min, y_max = min(y_all), max(y_all)
+y_pad = (y_max - y_min) * 0.1 if y_max > y_min else 1.0
+shared_y_range = [max(0.0, y_min - y_pad), y_max + y_pad]
+
 col_c1, col_c2 = st.columns(2)
 with col_c1:
     fig1 = go.Figure()
@@ -373,6 +382,7 @@ with col_c1:
                                marker=dict(color="#c1121f", size=12, symbol="x"), name="現在の設定"))
     fig1.update_layout(title="QD (透析液流量) を変化させた場合",
                         xaxis_title="QD (mL/h)", yaxis_title="24時間除去率 (%)",
+                        yaxis=dict(range=shared_y_range),
                         height=380, margin=dict(l=10, r=10, t=40, b=10), showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
 with col_c2:
@@ -382,8 +392,11 @@ with col_c2:
                                marker=dict(color="#c1121f", size=12, symbol="x"), name="現在の設定"))
     fig2.update_layout(title="QF (濾液流量) を変化させた場合",
                         xaxis_title="QF (mL/h)", yaxis_title="24時間除去率 (%)",
+                        yaxis=dict(range=shared_y_range),
                         height=380, margin=dict(l=10, r=10, t=40, b=10), showlegend=False)
     st.plotly_chart(fig2, use_container_width=True)
+st.caption("💡 左右のグラフは縦軸(除去率%)のスケールを揃えている。線の傾きそのものを比較すれば、"
+           "その物質において拡散(QD)と濾過(QF)のどちらがどれだけ効果的かが分かる。")
 
 # ==========================================
 # 8. 物質ごとの比較表
