@@ -129,6 +129,12 @@ st.page_link("pages/10_Ca_sim.py",
     use_container_width=True
 )
 
+st.page_link("pages/12_KFRE_yosoku.py", 
+    label="**信州上田　腎機能予後予測システム", 
+    icon="🧂", 
+    use_container_width=True
+)
+
 st.markdown("""
 <br>
 <small style="color:gray">
