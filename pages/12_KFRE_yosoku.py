@@ -1,10 +1,8 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ページ設定
 st.set_page_config(page_title="信州上田 慢性腎臓病 腎機能予後予測システム", layout="wide")
 
-# 元のHTML/CSS/JSコードを文字列として格納
 html_code = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -16,13 +14,13 @@ html_code = """
 <style>
   /* --- カラーパレット --- */
   :root {
-    --sanada-red: #b32020;       /* 深紅 */
-    --sanada-gold: #d4af37;      /* 金色 */
-    --castle-black: #2b2b2b;     /* 兜の黒 */
-    --stone-gray: #777777;       /* グレー */
-    --risk-high-color: #c0392b;  /* 警告色 */
-    --risk-low-color: #27ae60;   /* 安全色 */
-    --sim-color: #2980b9;        /* シミュレーション青 */
+    --sanada-red: #b32020;
+    --sanada-gold: #d4af37;
+    --castle-black: #2b2b2b;
+    --stone-gray: #777777;
+    --risk-high-color: #c0392b;
+    --risk-low-color: #27ae60;
+    --sim-color: #2980b9;
     --bg-washi: #fcfaf5;
   }
 
@@ -35,10 +33,8 @@ html_code = """
 
   .container { max-width: 700px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #dcd0bc; }
   
-  /* --- ヘッダーエリア --- */
   .header-area {
     background-color: var(--sanada-red);
-    background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm2 2v16h16V2H2z' fill='%23000000' fill-opacity='0.1'/%3E%3Cpath d='M2 2h2v2H2V2zm4 4h2v2H6V6zm4 4h2v2h-2v-2zm4 4h2v2h-2v-2zm4 4h2v2h-2v-2zM2 18h2v-2H2v2zm4-4h2v-2H6v2zm4-4h2v-2h-2v2zm4-4h2V6h-2v2zm4-4h2V2h-2v2z' fill='%23d4af37' fill-opacity='0.15'/%3E%3C/svg%3E");
     padding: 30px 20px 25px; text-align: center; color: white; position: relative;
     border-bottom: 4px solid var(--castle-black);
     border-top: 8px solid var(--castle-black);
@@ -53,7 +49,6 @@ html_code = """
   .sub-title-main { font-size: 0.95em; margin-top: 5px; font-weight: bold; }
   .sub-title-kfre { font-size: 0.75em; opacity: 0.85; margin-top: 8px; font-family: sans-serif; }
 
-  /* --- 入力フォーム --- */
   .content-body { padding: 30px; }
   .form-group { margin-bottom: 20px; }
   label { display: block; font-weight: bold; margin-bottom: 8px; color: #5a4a4a; font-size: 0.95em; }
@@ -75,7 +70,6 @@ html_code = """
   .guide-table td { padding: 4px; text-align: center; border: 1px solid #ddd; font-weight: bold; color: var(--sanada-red); }
   .guide-note { font-size: 0.8em; color: #666; margin-top: 5px; text-align: right; }
 
-  /* --- ボタン（クリック感強化） --- */
   button.calc-btn { 
     width: 100%; padding: 18px; 
     background: linear-gradient(to bottom, var(--sanada-red), #8a1919);
@@ -83,17 +77,12 @@ html_code = """
     font-size: 20px; font-weight: bold; cursor: pointer; 
     box-shadow: 0 4px 0 #5e1111; margin-bottom: 15px;
     letter-spacing: 0.1em; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    position: relative; overflow: hidden; /* 波紋用 */
+    position: relative; overflow: hidden;
     transition: transform 0.1s, box-shadow 0.1s;
   }
-  
-  /* ホバー時 */
   button.calc-btn:hover { transform: translateY(2px); box-shadow: 0 2px 0 #5e1111; }
-  
-  /* クリック時（沈み込み） */
   button.calc-btn:active { transform: translateY(4px) scale(0.98); box-shadow: 0 0 0 #5e1111; }
 
-  /* 波紋エフェクト */
   span.ripple {
     position: absolute; border-radius: 50%;
     transform: scale(0); animation: ripple 0.6s linear;
@@ -102,7 +91,6 @@ html_code = """
   }
   @keyframes ripple { to { transform: scale(4); opacity: 0; } }
 
-  /* --- 結果表示エリア --- */
   #result-area { margin-top: 30px; display: none; animation: fadeIn 0.6s ease; }
   .result-cards { display: flex; gap: 15px; margin-bottom: 20px; }
   @media (max-width: 600px) { .result-cards { flex-direction: column; } }
@@ -122,7 +110,6 @@ html_code = """
 
   #advice-box { padding: 20px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1em; border: 2px solid transparent; margin-bottom: 25px; transition: all 0.5s; }
 
-  /* --- 治療シミュレーション --- */
   .strategy-area { margin-top: 30px; border: 2px dashed #d4af37; border-radius: 8px; padding: 20px; background: #fffcf0; display: none; }
   .strategy-title { text-align: center; font-weight: bold; color: #8a6d3b; margin-bottom: 15px; font-size: 1.1em; border-bottom: 1px dashed #d4af37; padding-bottom: 10px; }
   .toggle-container { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 15px; }
@@ -136,13 +123,11 @@ html_code = """
   .toggle-item.active .check-icon::after { content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px; border: solid var(--sanada-red); border-width: 0 3px 3px 0; transform: rotate(45deg); }
   .sim-note { font-size: 0.8em; color: #8a6d3b; text-align: center; margin-top: 15px; }
 
-  /* --- 出典 --- */
   .source-area { margin-top: 30px; padding: 15px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 0.75em; color: #666; line-height: 1.5; }
   .source-title { font-weight: bold; color: #333; margin-bottom: 5px; }
   .source-list { list-style-type: none; padding: 0; margin: 0; }
   .source-list li { margin-bottom: 3px; padding-left: 10px; text-indent: -10px; }
 
-  /* --- ステータス変化 --- */
   .status-red .target-risk { border-color: var(--risk-high-color); background-color: #fff5f5; }
   .status-red .target-risk .card-header { background: var(--risk-high-color); color: white; border-color: var(--risk-high-color); }
   .status-red .target-risk .risk-number { color: var(--risk-high-color); }
@@ -261,6 +246,9 @@ html_code = """
       </div>
     </div>
 
+    <!-- エラーメッセージ表示用エリア (追加) -->
+    <div id="error-msg" style="color: var(--risk-high-color); font-weight: bold; text-align: center; margin-bottom: 15px;"></div>
+
     <button type="button" class="calc-btn" onclick="handleClick(event)">計算する</button>
 
     <div id="result-area">
@@ -321,7 +309,6 @@ html_code = """
 </div>
 
 <script>
-  // グローバル変数
   var baseRisk5 = 0;
   var baseRisk10 = 0;
 
@@ -341,7 +328,6 @@ html_code = """
     }
   }
 
-  // ボタンクリック時のリップル効果と計算実行
   function handleClick(event) {
     createRipple(event);
     setTimeout(calc, 100); 
@@ -365,6 +351,10 @@ html_code = """
   }
 
   function calc() {
+    // エラーメッセージをリセット
+    var errorDiv = document.getElementById('error-msg');
+    errorDiv.innerHTML = "";
+
     try {
       var age = parseFloat(document.getElementById('age').value);
       var sex = parseInt(document.getElementById('sex').value);
@@ -372,15 +362,22 @@ html_code = """
       var acr = 0;
       var msg = "";
       
+      if(isNaN(age) || isNaN(egfr)) { 
+        errorDiv.innerHTML = "⚠️ 年齢とeGFRを正しく入力してください"; 
+        return; 
+      }
+
       var radios = document.getElementsByName('urineType');
       var type = 'PCR';
       for(var i=0; i<radios.length; i++){ if(radios[i].checked) type = radios[i].value; }
 
       if(type === 'PCR'){
         var pInput = parseFloat(document.getElementById('pcr_val').value);
-        if(isNaN(pInput)) { alert("尿蛋白値を入力してください"); return; }
+        if(isNaN(pInput)) { 
+          errorDiv.innerHTML = "⚠️ 尿蛋白値を入力してください"; 
+          return; 
+        }
         
-        // 0なら0.1として扱う (変更点)
         if(pInput === 0) {
           pInput = 0.1;
           msg = "※尿蛋白 0 を 0.1 g/gCr として計算しました";
@@ -391,8 +388,10 @@ html_code = """
         
       } else {
         var aInput = parseFloat(document.getElementById('acr_val').value);
-        if(isNaN(aInput)) { alert("尿アルブミン値を入力してください"); return; }
-        // ACR 0なら 10 (変更点)
+        if(isNaN(aInput)) { 
+          errorDiv.innerHTML = "⚠️ 尿アルブミン値を入力してください"; 
+          return; 
+        }
         if(aInput === 0) {
           aInput = 10;
           msg = "※尿アルブミン 0 を 10 mg/gCr として計算しました";
@@ -401,7 +400,6 @@ html_code = """
       }
 
       if (acr < 1) acr = 1;
-      if(isNaN(age) || isNaN(egfr)) { alert("年齢とeGFRを入力してください"); return; }
 
       var lnACR = Math.log(acr);
       var score = -0.2201 * (age/10 - 7.036) 
@@ -417,7 +415,6 @@ html_code = """
       document.getElementById('strategy-area').style.display = 'block';
       document.getElementById('conv-msg').innerHTML = msg;
       
-      // オートスクロール
       document.getElementById('result-area').scrollIntoView({behavior: 'smooth', block: 'start'});
 
       var items = document.querySelectorAll('.toggle-item');
@@ -429,7 +426,7 @@ html_code = """
       updateDisplay(baseRisk5, baseRisk10, false);
 
     } catch(e) {
-      alert("エラー: " + e);
+      errorDiv.innerHTML = "⚠️ エラーが発生しました: " + e;
     }
   }
 
@@ -463,7 +460,6 @@ html_code = """
   function updateDisplay(r5, r10, isSim) {
     var age = parseFloat(document.getElementById('age').value);
     
-    // 蛋白尿チェック（0.5以上なら強制紹介）
     var isHighProtein = false;
     var radios = document.getElementsByName('urineType');
     var type = 'PCR';
@@ -483,7 +479,6 @@ html_code = """
     var card10 = document.getElementById('card-10y');
     var marks = document.querySelectorAll('.judge-mark');
     
-    // 表示リセット
     area.classList.remove('status-red', 'status-green', 'status-sim');
     card5.classList.remove('target-risk');
     card10.classList.remove('target-risk');
@@ -491,7 +486,6 @@ html_code = """
     var isReferral = false;
     var reason = "";
 
-    // 判定ロジック: 蛋白尿0.5以上は強制紹介。それ以外は確率で判定
     if(isHighProtein) {
         isReferral = true;
         reason = "蛋白尿(0.5以上)";
@@ -508,7 +502,6 @@ html_code = """
     animateValue("risk5-disp", 0, r5per, 500);
     animateValue("risk10-disp", 0, r10per, 500);
 
-    // カード強調
     if (age < 70) card10.classList.add('target-risk');
     else card5.classList.add('target-risk');
 
@@ -568,6 +561,4 @@ html_code = """
 </html>
 """
 
-# Streamlitの新しい推奨メソッドでHTMLを描画
-# heightを十分に取らないとスクロールバーが出て見栄えが悪くなるため1200に設定
-st.html(f"<div style='height: 1200px;'>{html_code}</div>")
+components.html(html_code, height=1200, scrolling=True)
