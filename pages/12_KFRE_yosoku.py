@@ -1,3 +1,11 @@
+import streamlit as st
+import streamlit.components.v1 as components
+
+# ページ設定
+st.set_page_config(page_title="信州上田 慢性腎臓病 腎機能予後予測システム", layout="wide")
+
+# 元のHTML/CSS/JSコードを文字列として格納
+html_code = """
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -558,3 +566,8 @@
 </script>
 </body>
 </html>
+"""
+
+# Streamlitの新しい推奨メソッドでHTMLを描画
+# heightを十分に取らないとスクロールバーが出て見栄えが悪くなるため1200に設定
+st.html(f"<div style='height: 1200px;'>{html_code}</div>")
