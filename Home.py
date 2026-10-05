@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ページ設定
 st.set_page_config(page_title="信州上田 CKM症候群・心血管リスク予測 (PREVENT)", layout="wide")
 
 html_code = """
@@ -12,61 +11,33 @@ html_code = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>信州上田 CKM症候群・心血管リスク予測 (PREVENT)</title>
 <style>
-  /* --- 新テーマ：深藍と石垣グレー --- */
   :root {
-    --indigo-deep: #1a2c42;      /* 深藍（ヘッダー等） */
-    --stone-gray: #5c6266;       /* 石垣グレー */
-    --keyaki-green: #2d6e35;     /* けやきグリーン（低リスク・安全） */
-    --sanada-red: #b32020;       /* 真田レッド（高リスク・警告） */
-    --gold-accent: #d4af37;      /* ゴールドアクセント */
-    
-    /* リスクバー用カラー */
-    --risk-low: #27ae60;         /* < 5% */
-    --risk-border: #f1c40f;      /* 5 - 7.5% */
-    --risk-mid: #e67e22;         /* 7.5 - 20% */
-    --risk-high: #c0392b;        /* >= 20% */
-    
+    --indigo-deep: #1a2c42;      
+    --stone-gray: #5c6266;       
+    --keyaki-green: #2d6e35;     
+    --sanada-red: #b32020;       
+    --gold-accent: #d4af37;      
+    --risk-low: #27ae60;         
+    --risk-border: #f1c40f;      
+    --risk-mid: #e67e22;         
+    --risk-high: #c0392b;        
     --bg-color: #f4f6f8;
   }
-
-  body { 
-    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif; 
-    background-color: var(--bg-color); 
-    color: #333; margin: 0; padding: 20px;
-  }
-
-  .container { 
-    max-width: 800px; margin: 0 auto; background: #fff; 
-    border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); 
-    overflow: hidden; border: 1px solid #e0e4e8; 
-  }
+  body { font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif; background-color: var(--bg-color); color: #333; margin: 0; padding: 20px; }
+  .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e0e4e8; }
   
-  /* --- ヘッダー --- */
-  .header-area {
-    background: linear-gradient(135deg, var(--indigo-deep), #2c425e);
-    padding: 35px 20px 25px; text-align: center; color: white; position: relative;
-    border-bottom: 6px solid var(--stone-gray);
-  }
-
+  .header-area { background: linear-gradient(135deg, var(--indigo-deep), #2c425e); padding: 35px 20px 25px; text-align: center; color: white; position: relative; border-bottom: 6px solid var(--stone-gray); }
   .gate-svg { width: 120px; height: auto; margin-bottom: 15px; fill: var(--stone-gray); filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5)); }
-  
   h2 { font-family: "HGS 行書B", "HGP行書B", "HG行書B", serif; margin: 0; font-size: 1.8em; letter-spacing: 0.05em; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
   .sub-title { font-size: 0.9em; margin-top: 8px; color: #cbd5e1; font-family: sans-serif; }
   .endpoint-label { display: inline-block; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 0.8em; margin-top: 15px; border: 1px solid rgba(255,255,255,0.3); }
 
-  /* --- フォームレイアウト --- */
   .content-body { padding: 30px; font-family: sans-serif; }
-  
   .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
   @media (max-width: 600px) { .grid-2col { grid-template-columns: 1fr; } }
-  
   .form-group { margin-bottom: 15px; }
   label { display: block; font-weight: bold; margin-bottom: 6px; color: var(--indigo-deep); font-size: 0.9em; position: relative; }
-  input[type="number"], select { 
-    width: 100%; padding: 10px; font-size: 16px; 
-    border: 2px solid #ccd1d9; border-radius: 6px; box-sizing: border-box;
-    transition: all 0.2s;
-  }
+  input[type="number"], select { width: 100%; padding: 10px; font-size: 16px; border: 2px solid #ccd1d9; border-radius: 6px; box-sizing: border-box; transition: all 0.2s; }
   input:focus, select:focus { border-color: var(--indigo-deep); outline: none; background: #f8faff; }
 
   .checkbox-group { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
@@ -76,38 +47,14 @@ html_code = """
   .optional-group { border-left: 4px solid var(--gold-accent); background: #fffbf0; padding: 15px; margin-bottom: 25px; border-radius: 0 6px 6px 0; }
   .optional-title { font-size: 0.85em; color: #856404; font-weight: bold; margin-bottom: 10px; }
 
-  /* --- ツールチップ（吹き出し）CSS --- */
-  .tooltip-icon {
-    display: inline-flex; justify-content: center; align-items: center;
-    width: 16px; height: 16px; background: var(--stone-gray); color: white;
-    border-radius: 50%; font-size: 11px; margin-left: 5px; cursor: help;
-    vertical-align: middle; position: relative;
-  }
-  .tooltip-text {
-    visibility: hidden; width: 220px; background-color: var(--indigo-deep); color: #fff;
-    text-align: left; border-radius: 6px; padding: 10px; position: absolute;
-    z-index: 100; bottom: 130%; left: 50%; margin-left: -110px;
-    opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none; line-height: 1.4;
-  }
-  .tooltip-text::after {
-    content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px;
-    border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent;
-  }
+  .tooltip-icon { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: var(--stone-gray); color: white; border-radius: 50%; font-size: 11px; margin-left: 5px; cursor: help; vertical-align: middle; position: relative; }
+  .tooltip-text { visibility: hidden; width: 220px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none; line-height: 1.4; }
+  .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
   .tooltip-icon:hover .tooltip-text { visibility: visible; opacity: 1; }
 
-  /* --- ボタン --- */
-  button.calc-btn { 
-    width: 100%; padding: 16px; 
-    background: linear-gradient(to bottom, var(--indigo-deep), #0f1926);
-    color: white; border: none; border-radius: 6px; 
-    font-size: 1.2em; font-weight: bold; cursor: pointer; 
-    box-shadow: 0 4px 0 var(--stone-gray); margin-bottom: 20px;
-    transition: all 0.1s; letter-spacing: 0.1em;
-  }
+  button.calc-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, var(--indigo-deep), #0f1926); color: white; border: none; border-radius: 6px; font-size: 1.2em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 var(--stone-gray); margin-bottom: 20px; transition: all 0.1s; letter-spacing: 0.1em; }
   button.calc-btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--stone-gray); }
 
-  /* --- 結果表示 --- */
   #result-area { display: none; animation: fadeIn 0.5s ease; }
   
   .ckm-table-container { margin-bottom: 25px; overflow-x: auto; }
@@ -117,41 +64,26 @@ html_code = """
   .ckm-table td.active-stage { background: var(--gold-accent); color: #fff; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; }
   
   .risk-bar-container { position: relative; margin: 40px 0 20px; background: #e2e8f0; height: 30px; border-radius: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
-  .risk-gradient { position: absolute; top: 0; left: 0; height: 100%; width: 100%; border-radius: 15px;
-    background: linear-gradient(to right, 
-      var(--risk-low) 0%, var(--risk-low) 25%, 
-      var(--risk-border) 25%, var(--risk-border) 37.5%, 
-      var(--risk-mid) 37.5%, var(--risk-mid) 50%, 
-      var(--risk-high) 50%, var(--risk-high) 100%);
-    opacity: 0.8;
-  }
+  .risk-gradient { position: absolute; top: 0; left: 0; height: 100%; width: 100%; border-radius: 15px; background: linear-gradient(to right, var(--risk-low) 0%, var(--risk-low) 25%, var(--risk-border) 25%, var(--risk-border) 37.5%, var(--risk-mid) 37.5%, var(--risk-mid) 50%, var(--risk-high) 50%, var(--risk-high) 100%); opacity: 0.8; }
   .risk-labels { display: flex; justify-content: space-between; position: absolute; width: 100%; top: 35px; font-size: 0.75em; font-weight: bold; color: #64748b; }
-  
-  .risk-pin { 
-    position: absolute; top: -35px; width: 30px; height: 30px; 
-    background: #fff; border: 3px solid var(--indigo-deep); border-radius: 50%;
-    transform: translateX(-50%); transition: left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 10; display: flex; justify-content: center; align-items: center;
-  }
+  .risk-pin { position: absolute; top: -35px; width: 30px; height: 30px; background: #fff; border: 3px solid var(--indigo-deep); border-radius: 50%; transform: translateX(-50%); transition: left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 10; display: flex; justify-content: center; align-items: center; }
   .risk-pin::after { content: ""; position: absolute; bottom: -10px; border-width: 5px 5px 0; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
   .pin-icon { width: 16px; height: 16px; fill: var(--indigo-deep); }
 
   .big-result { text-align: center; margin: 20px 0; }
   .big-number { font-size: 4em; font-weight: bold; color: var(--indigo-deep); font-family: serif; line-height: 1; transition: color 0.3s; }
   .big-unit { font-size: 0.3em; color: #64748b; font-family: sans-serif; }
+  .hf-result { font-weight:bold; color:var(--stone-gray); margin-top:15px; font-size: 1.15em; padding: 10px; background: #fffbf0; border-radius: 8px; border: 1px solid #e6dcc8; display: inline-block;}
+  .hf-val { color: var(--sanada-red); font-size: 1.4em; font-family: sans-serif; transition: color 0.3s; }
 
-  /* --- シミュレーション --- */
   .sim-area { border: 2px dashed #94a3b8; border-radius: 8px; padding: 20px; background: #f8fafc; margin-top: 20px; }
   .sim-title { text-align: center; font-weight: bold; color: var(--indigo-deep); margin-bottom: 15px; font-size: 1.05em; }
   .sim-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-  .sim-btn { 
-    background: #fff; border: 2px solid #cbd5e1; color: #475569; 
-    padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;
-    transition: all 0.2s; display: flex; align-items: center; user-select: none;
-  }
+  .sim-btn { background: #fff; border: 2px solid #cbd5e1; color: #475569; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em; transition: all 0.2s; display: flex; align-items: center; user-select: none; }
   .sim-btn input { display: none; }
   .sim-btn.active { background: var(--indigo-deep); color: white; border-color: var(--indigo-deep); box-shadow: 0 3px 6px rgba(0,0,0,0.15); }
   .sim-btn.disabled { opacity: 0.4; cursor: not-allowed; background: #e2e8f0; border-color: #cbd5e1; }
+  .source-area { margin-top: 40px; padding: 15px; background: #f1f5f9; border-radius: 8px; font-size: 0.75em; color: #64748b; line-height: 1.5; }
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -183,7 +115,7 @@ html_code = """
       <div class="form-group"><label>収縮期血圧 (mmHg)</label><input type="number" id="sbp" value="135"></div>
       <div class="form-group">
         <label>eGFR (mL/min/1.73m²)
-          <span class="tooltip-icon">?<span class="tooltip-text">推算糸球体濾過量。腎臓が老廃物を排泄する能力を示す指標です。心不全や心血管イベントのリスクに強く影響し、PREVENT式における重要な予測因子です。</span></span>
+          <span class="tooltip-icon">?<span class="tooltip-text">推算糸球体濾過量。腎臓が老廃物を排泄する能力を示す指標です。心血管イベントや心不全のリスクに強く影響します。</span></span>
         </label>
         <input type="number" id="egfr" value="65">
       </div>
@@ -191,9 +123,9 @@ html_code = """
       <div class="form-group"><label>HDLコレステロール (mg/dL)</label><input type="number" id="hdl" value="45"></div>
       <div class="form-group">
         <label>BMI (kg/m²)
-          <span class="tooltip-icon">?<span class="tooltip-text">Body Mass Index（体格指数）。体重(kg)÷身長(m)の2乗で算出されます。CKM症候群において、25以上の過体重は初期の「Stage 1」に分類される契機となります。</span></span>
+          <span class="tooltip-icon">?<span class="tooltip-text">Body Mass Index（体格指数）。25以上の過体重はCKM Stage 1に分類され、30以上の高度肥満は心不全単独の発症リスクを指数関数的に押し上げます。</span></span>
         </label>
-        <input type="number" id="bmi" value="26" placeholder="※CKMステージ判定用">
+        <input type="number" id="bmi" value="26">
       </div>
     </div>
 
@@ -201,7 +133,6 @@ html_code = """
       <label class="check-label"><input type="checkbox" id="bp_med"> 降圧薬服用</label>
       <label class="check-label"><input type="checkbox" id="statin" onchange="handleStatinChange(this)"> スタチン内服</label>
       <label class="check-label"><input type="checkbox" id="dm"> 糖尿病</label>
-      <!-- 喫煙チェックボックスにもイベントリスナーを追加 -->
       <label class="check-label"><input type="checkbox" id="smoke" onchange="handleSmokeChange(this)"> 喫煙者</label>
     </div>
 
@@ -210,13 +141,13 @@ html_code = """
       <div class="grid-2col" style="margin-bottom:0;">
         <div class="form-group" style="margin-bottom:0;">
           <label>UACR (尿中アルブミン mg/gCr)
-            <span class="tooltip-icon">?<span class="tooltip-text">尿中アルブミン/クレアチニン比。腎臓の微小なダメージを早期に捉える指標です。入力するとより精度の高い「UACR Add-onモデル」に自動で切り替わります。</span></span>
+            <span class="tooltip-icon">?<span class="tooltip-text">腎臓の微小なダメージを早期に捉える指標です。入力するとより精度の高い「UACR Add-onモデル」に自動で切り替わります。</span></span>
           </label>
           <input type="number" id="uacr" placeholder="未入力でベースモデル">
         </div>
         <div class="form-group" style="margin-bottom:0;">
           <label>HbA1c (%)
-            <span class="tooltip-icon">?<span class="tooltip-text">過去1〜2ヶ月の平均的な血糖状態を反映する指標です。入力すると糖尿病関連の予測精度が向上する「HbA1c Add-onモデル」に自動で切り替わります。</span></span>
+            <span class="tooltip-icon">?<span class="tooltip-text">入力すると糖尿病関連の予測精度が向上する「HbA1c Add-onモデル」に自動で切り替わります。</span></span>
           </label>
           <input type="number" id="hba1c" placeholder="未入力でベースモデル">
         </div>
@@ -241,6 +172,7 @@ html_code = """
       <div class="big-result">
         <div style="font-weight:bold; color:var(--stone-gray);">10年以内の総CVD発症確率</div>
         <div class="big-number" id="risk-val">--<span class="big-unit">%</span></div>
+        <div class="hf-result">⚠️️ うち、心不全(HF)単独の発症確率: <span class="hf-val" id="hf-risk-val">--</span> %</div>
         <div id="model-type" style="font-size:0.8em; color:#94a3b8; margin-top:5px;"></div>
       </div>
 
@@ -262,13 +194,23 @@ html_code = """
         <div class="sim-title">▼ 介入シミュレーション（What-if）</div>
         <div class="sim-grid">
           <label class="sim-btn" id="lbl-quit"><input type="checkbox" value="quit" onchange="toggleSim(this)"> 🚭 禁煙する</label>
+          <label class="sim-btn" id="lbl-weight"><input type="checkbox" value="weight" onchange="toggleSim(this)"> ⚖️ 体重管理(BMI改善)</label>
           <label class="sim-btn" id="lbl-statin"><input type="checkbox" value="statin" onchange="toggleSim(this)"> 💊 スタチン導入(LDL低下)</label>
           <label class="sim-btn" id="lbl-sglt2"><input type="checkbox" value="sglt2" onchange="toggleSim(this)"> 💧 SGLT2阻害薬</label>
           <label class="sim-btn" id="lbl-mra"><input type="checkbox" value="mra" onchange="toggleSim(this)"> 🛡️ MRA</label>
         </div>
         <div style="font-size:0.75em; color:#94a3b8; text-align:center; margin-top:10px;">
-          ※一部の薬剤効果は、一般的な相対リスク低下(RRR)を用いた教育的推計です。
+          ※一部の薬剤効果は、一般的な相対リスク低下(RRR)を用いた教育的推計です。<br>
+          ※体重管理を行うと、BMIを25未満に正常化した場合の「肥満による心不全リスク」の劇的な低下が確認できます。
         </div>
+      </div>
+      
+      <div class="source-area">
+        <div style="font-weight: bold; color: #333; margin-bottom: 5px;">【参考文献】</div>
+        <ul style="list-style-type: none; padding: 0; margin: 0;">
+          <li style="margin-bottom: 3px; padding-left: 10px; text-indent: -10px;">・Khan SS, et al. Novel Prediction Equations for Absolute Risk Assessment of Total Cardiovascular Disease Incorporating Cardiovascular-Kidney-Metabolic Health: A Scientific Statement From the American Heart Association. Circulation. 2023;148:1982–2004.</li>
+          <li style="margin-bottom: 3px; padding-left: 10px; text-indent: -10px;">・Khan SS, et al. Development and Validation of the American Heart Association Predicting Risk of Cardiovascular Disease EVENTS (PREVENT) Equations. Circulation. 2024;149:430–442.</li>
+        </ul>
       </div>
 
     </div>
@@ -277,55 +219,41 @@ html_code = """
 
 <script>
   let baseCalcRisk = 0;
+  let baseHFRisk = 0;
 
-  // 初期読み込み時にスタチンと喫煙の状態をチェック
   document.addEventListener("DOMContentLoaded", function() {
     handleStatinChange(document.getElementById('statin'));
     handleSmokeChange(document.getElementById('smoke'));
   });
 
-  // スタチン内服のチェック変更時にシミュレーションボタンを制御
   function handleStatinChange(el) {
     let simBtn = document.getElementById('lbl-statin');
     let simInput = simBtn.querySelector('input');
     if (el.checked) {
-      simInput.checked = false; 
-      simInput.disabled = true; 
-      simBtn.classList.remove('active');
-      simBtn.classList.add('disabled');
+      simInput.checked = false; simInput.disabled = true; 
+      simBtn.classList.remove('active'); simBtn.classList.add('disabled');
       simBtn.title = "すでにスタチンを内服しているため選択できません";
     } else {
-      simInput.disabled = false;
-      simBtn.classList.remove('disabled');
-      simBtn.title = "";
+      simInput.disabled = false; simBtn.classList.remove('disabled'); simBtn.title = "";
     }
   }
 
-  // 喫煙者のチェック変更時に「禁煙する」ボタンを制御
   function handleSmokeChange(el) {
     let simBtn = document.getElementById('lbl-quit');
     let simInput = simBtn.querySelector('input');
     if (!el.checked) {
-      // 吸っていない場合は禁煙できないのでグレーアウト
-      simInput.checked = false; 
-      simInput.disabled = true; 
-      simBtn.classList.remove('active');
-      simBtn.classList.add('disabled');
+      simInput.checked = false; simInput.disabled = true; 
+      simBtn.classList.remove('active'); simBtn.classList.add('disabled');
       simBtn.title = "喫煙者ではないため選択できません";
     } else {
-      simInput.disabled = false;
-      simBtn.classList.remove('disabled');
-      simBtn.title = "";
+      simInput.disabled = false; simBtn.classList.remove('disabled'); simBtn.title = "";
     }
   }
 
   function handleCalcClick(btn) {
     let originalText = btn.innerText;
     btn.innerText = "計算中...";
-    setTimeout(() => {
-      calcRisk();
-      btn.innerText = originalText;
-    }, 150);
+    setTimeout(() => { calcRisk(); btn.innerText = originalText; }, 150);
   }
 
   function calcRisk() {
@@ -345,7 +273,6 @@ html_code = """
       let statin = document.getElementById('statin').checked;
       let dm = document.getElementById('dm').checked;
       let smoke = document.getElementById('smoke').checked;
-      
       let uacrStr = document.getElementById('uacr').value;
       let hba1cStr = document.getElementById('hba1c').value;
       
@@ -355,20 +282,16 @@ html_code = """
         return;
       }
 
-      // CKMステージ判定
       let stage = 0;
       if (bmi >= 25) stage = 1; 
-      if (sbp >= 130 || bp_med || tc >= 200 || statin || dm || hdl < 40 || egfr < 60 || (uacrStr && parseFloat(uacrStr) >= 30)) {
-        stage = 2;
-      }
+      if (sbp >= 130 || bp_med || tc >= 200 || statin || dm || hdl < 40 || egfr < 60 || (uacrStr && parseFloat(uacrStr) >= 30)) stage = 2;
 
-      // シミュレーションUIリセット
       document.querySelectorAll('.sim-btn input').forEach(inp => {
         if(!inp.disabled) { inp.checked = false; inp.parentElement.classList.remove('active'); }
       });
 
-      // リスク計算実行 (AHA PREVENT式)
       baseCalcRisk = executePredictEquation(age, sex, sbp, bp_med, egfr, tc, hdl, statin, dm, smoke, uacrStr, hba1cStr);
+      baseHFRisk = executeHFPredictEquation(age, sex, sbp, bp_med, egfr, bmi, dm, smoke, uacrStr, hba1cStr);
       
       if (baseCalcRisk >= 20.0) stage = 3;
 
@@ -377,7 +300,7 @@ html_code = """
 
       let resultArea = document.getElementById('result-area');
       resultArea.style.display = 'block';
-      updateRiskUI(baseCalcRisk);
+      updateRiskUI(baseCalcRisk, baseHFRisk);
 
       setTimeout(() => { resultArea.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 100);
 
@@ -399,6 +322,7 @@ html_code = """
     let egfr = parseFloat(document.getElementById('egfr').value);
     let tc = parseFloat(document.getElementById('tc').value);
     let hdl = parseFloat(document.getElementById('hdl').value);
+    let bmi = parseFloat(document.getElementById('bmi').value) || 22;
     
     let bp_med = document.getElementById('bp_med').checked;
     let statin = document.getElementById('statin').checked;
@@ -409,24 +333,25 @@ html_code = """
 
     let checkedSims = Array.from(document.querySelectorAll('.sim-btn input:checked')).map(inp => inp.value);
 
-    // シミュレーション用パラメータ書き換え
     if (checkedSims.includes('quit')) smoke = false;
-    if (checkedSims.includes('statin')) {
-      statin = true;
-      tc = Math.max(130, tc - 40);
-    }
+    if (checkedSims.includes('statin')) { statin = true; tc = Math.max(130, tc - 40); }
+    if (checkedSims.includes('weight')) { bmi = Math.min(bmi, 24.9); sbp = Math.max(110, sbp - 5); }
 
     let simRisk = executePredictEquation(age, sex, sbp, bp_med, egfr, tc, hdl, statin, dm, smoke, uacrStr, hba1cStr);
+    let simHfRisk = executeHFPredictEquation(age, sex, sbp, bp_med, egfr, bmi, dm, smoke, uacrStr, hba1cStr);
 
-    if (checkedSims.includes('sglt2')) simRisk *= 0.75; 
-    if (checkedSims.includes('mra')) simRisk *= 0.85;
+    if (checkedSims.includes('sglt2')) { simRisk *= 0.75; simHfRisk *= 0.75; }
+    if (checkedSims.includes('mra')) { simRisk *= 0.85; simHfRisk *= 0.85; }
 
-    updateRiskUI(simRisk);
+    updateRiskUI(simRisk, simHfRisk);
   }
 
-  function updateRiskUI(riskVal) {
+  function updateRiskUI(riskVal, hfRiskVal) {
     let numDiv = document.getElementById('risk-val');
     numDiv.innerHTML = riskVal.toFixed(1) + '<span class="big-unit">%</span>';
+    
+    let hfDiv = document.getElementById('hf-risk-val');
+    hfDiv.innerText = hfRiskVal.toFixed(1);
 
     let color = 'var(--indigo-deep)';
     if (riskVal < 5.0) color = 'var(--risk-low)';
@@ -435,6 +360,7 @@ html_code = """
     else color = 'var(--risk-high)';
     
     numDiv.style.color = color;
+    hfDiv.style.color = color;
     document.querySelector('.risk-pin').style.borderColor = color;
     document.querySelector('.pin-icon').style.fill = color;
 
@@ -447,7 +373,7 @@ html_code = """
     document.getElementById('risk-pin').style.left = Math.min(Math.max(pos, 0), 100) + '%';
   }
 
-  // --- PREVENT計算エンジン (10年 総CVDリスク) ---
+  // --- PREVENT Total CVD ---
   function executePredictEquation(age, sex, sbp, bp_med, egfr, tc, hdl, statin, dm, smoke, uacrStr, hba1cStr) {
     let has_uacr = (uacrStr && parseFloat(uacrStr) > 0);
     let has_hba1c = (hba1cStr && parseFloat(hba1cStr) > 0);
@@ -482,9 +408,7 @@ html_code = """
                 - 0.0742271 * age_term * non_hdl_term + 0.0288245 * age_term * hdl_term
                 - 0.0875188 * age_term * sbp_high - 0.2267102 * age_term * dm_val
                 - 0.0676125 * age_term * smoke_val - 0.1493231 * age_term * egfr_low
-                + 0.1645922 * uacr_term
-                + 0.1298513 * hba1c_term * dm_val + 0.1412555 * hba1c_term * (1 - dm_val)
-                + 0.1804508; 
+                + 0.1645922 * uacr_term + 0.1298513 * hba1c_term * dm_val + 0.1412555 * hba1c_term * (1 - dm_val) + 0.1804508; 
         } else {         
             logOdds = -3.631387 + 0.7847578 * age_term + 0.0534485 * non_hdl_term - 0.0911282 * hdl_term
                 - 0.4921973 * sbp_low + 0.2972415 * sbp_high + 0.4527054 * dm_val + 0.3726641 * smoke_val
@@ -493,9 +417,7 @@ html_code = """
                 - 0.0436455 * age_term * non_hdl_term + 0.0199549 * age_term * hdl_term
                 - 0.1022686 * age_term * sbp_high - 0.1762507 * age_term * dm_val
                 - 0.0715873 * age_term * smoke_val - 0.1428668 * age_term * egfr_low
-                + 0.1772853 * uacr_term
-                + 0.1165698 * hba1c_term * dm_val + 0.1048297 * hba1c_term * (1 - dm_val)
-                + 0.144759;  
+                + 0.1772853 * uacr_term + 0.1165698 * hba1c_term * dm_val + 0.1048297 * hba1c_term * (1 - dm_val) + 0.144759;  
         }
     } else if (has_uacr) {
         modelText = "✓ 適用モデル: PREVENT Add-on Model (UACR)";
@@ -506,8 +428,7 @@ html_code = """
                 - 0.0742889 * bp_med_val * sbp_high + 0.106756 * statin_val * non_hdl_term
                 - 0.0778126 * age_term * non_hdl_term + 0.0306768 * age_term * hdl_term
                 - 0.0907168 * age_term * sbp_high - 0.2705122 * age_term * dm_val
-                - 0.0830564 * age_term * smoke_val - 0.1389249 * age_term * egfr_low
-                + 0.1793037 * uacr_term;
+                - 0.0830564 * age_term * smoke_val - 0.1389249 * age_term * egfr_low + 0.1793037 * uacr_term;
         } else {         
             logOdds = -3.510705 + 0.7768655 * age_term + 0.0659949 * non_hdl_term - 0.0951111 * hdl_term
                 - 0.420667 * sbp_low + 0.3120151 * sbp_high + 0.698521 * dm_val + 0.4314669 * smoke_val
@@ -515,8 +436,7 @@ html_code = """
                 - 0.0579315 * bp_med_val * sbp_high + 0.1383719 * statin_val * non_hdl_term
                 - 0.0488332 * age_term * non_hdl_term + 0.0200406 * age_term * hdl_term
                 - 0.102454 * age_term * sbp_high - 0.2236355 * age_term * dm_val
-                - 0.089485 * age_term * smoke_val - 0.1321848 * age_term * egfr_low
-                + 0.1887974 * uacr_term;
+                - 0.089485 * age_term * smoke_val - 0.1321848 * age_term * egfr_low + 0.1887974 * uacr_term;
         }
     } else if (has_hba1c) {
         modelText = "✓ 適用モデル: PREVENT Add-on Model (HbA1c)";
@@ -559,14 +479,107 @@ html_code = """
                 - 0.0895067 * age_term * smoke_val - 0.1543702 * age_term * egfr_low;
         }
     }
-
     document.getElementById('model-type').innerText = modelText;
-    let risk = (Math.exp(logOdds) / (1 + Math.exp(logOdds))) * 100;
-    return Math.max(0.1, Math.min(risk, 99.9));
+    return (Math.exp(logOdds) / (1 + Math.exp(logOdds))) * 100;
+  }
+
+  // --- PREVENT Heart Failure (心不全単独モデル) ---
+  function executeHFPredictEquation(age, sex, sbp, bp_med, egfr, bmi, dm, smoke, uacrStr, hba1cStr) {
+    let has_uacr = (uacrStr && parseFloat(uacrStr) > 0);
+    let has_hba1c = (hba1cStr && parseFloat(hba1cStr) > 0);
+
+    let age_term = (age - 55) / 10;
+    let sbp_low = (Math.min(sbp, 110) - 110) / 20;
+    let sbp_high = (Math.max(sbp, 110) - 130) / 20;
+    let egfr_low = (Math.min(egfr, 60) - 60) / -15;
+    let egfr_high = (Math.max(egfr, 60) - 90) / -15;
+    let bmi_low = (Math.min(bmi, 30) - 25) / 5;
+    let bmi_high = (Math.max(bmi, 30) - 30) / 5;
+
+    let dm_val = dm ? 1 : 0;
+    let smoke_val = smoke ? 1 : 0;
+    let bp_med_val = bp_med ? 1 : 0;
+
+    let uacr_term = has_uacr ? Math.log(parseFloat(uacrStr)) : 0;
+    let hba1c_val = has_hba1c ? parseFloat(hba1cStr) : 0;
+    let hba1c_term = has_hba1c ? (hba1c_val - 5.3) : 0;
+
+    let logOdds = 0;
+
+    if (has_uacr && has_hba1c) {
+        if (sex === 0) { 
+            logOdds = -4.896524 + 0.884209 * age_term - 0.421474 * sbp_low + 0.3002919 * sbp_high
+                + 0.6170359 * dm_val + 0.5380269 * smoke_val - 0.0191335 * bmi_low + 0.2764302 * bmi_high
+                + 0.5975847 * egfr_low + 0.0654197 * egfr_high + 0.3313614 * bp_med_val
+                - 0.1002304 * bp_med_val * sbp_high - 0.0845363 * age_term * sbp_high
+                - 0.2989062 * age_term * dm_val - 0.1111354 * age_term * smoke_val
+                + 0.0008104 * age_term * bmi_high - 0.1666635 * age_term * egfr_low
+                + 0.1948135 * uacr_term + 0.176668 * hba1c_term * dm_val + 0.1614911 * hba1c_term * (1 - dm_val) + 0.1819138; 
+        } else { 
+            logOdds = -4.663513 + 0.9095703 * age_term - 0.6765184 * sbp_low + 0.3111651 * sbp_high
+                + 0.5535052 * dm_val + 0.4326811 * smoke_val - 0.0854286 * bmi_low + 0.3551736 * bmi_high
+                + 0.5102245 * egfr_low + 0.015472 * egfr_high + 0.2570964 * bp_med_val
+                - 0.0591177 * bp_med_val * sbp_high - 0.1219056 * age_term * sbp_high
+                - 0.2437577 * age_term * dm_val - 0.105363 * age_term * smoke_val
+                + 0.0037907 * age_term * bmi_high - 0.1660207 * age_term * egfr_low
+                + 0.2164607 * uacr_term + 0.148297 * hba1c_term * dm_val + 0.1234088 * hba1c_term * (1 - dm_val) + 0.1694628; 
+        }
+    } else if (has_uacr) {
+        if (sex === 0) { 
+            logOdds = -4.841506 + 0.9145975 * age_term - 0.4441346 * sbp_low + 0.3260323 * sbp_high
+                + 0.9611365 * dm_val + 0.5755787 * smoke_val + 0.0008831 * bmi_low + 0.2988964 * bmi_high
+                + 0.5915291 * egfr_low + 0.0556823 * egfr_high + 0.3314097 * bp_med_val
+                - 0.1078596 * bp_med_val * sbp_high - 0.0875231 * age_term * sbp_high
+                - 0.356859 * age_term * dm_val - 0.1220248 * age_term * smoke_val
+                - 0.0053637 * age_term * bmi_high - 0.1610389 * age_term * egfr_low + 0.2197281 * uacr_term;
+        } else { 
+            logOdds = -4.556907 + 0.9111795 * age_term - 0.6693649 * sbp_low + 0.3290082 * sbp_high
+                + 0.8377655 * dm_val + 0.4978917 * smoke_val - 0.042749 * bmi_low + 0.3624165 * bmi_high
+                + 0.5075796 * egfr_low + 0.0137716 * egfr_high + 0.2739963 * bp_med_val
+                - 0.0645712 * bp_med_val * sbp_high - 0.1230039 * age_term * sbp_high
+                - 0.3013297 * age_term * dm_val - 0.1410318 * age_term * smoke_val
+                + 0.0021531 * age_term * bmi_high - 0.1548018 * age_term * egfr_low + 0.2306299 * uacr_term;
+        }
+    } else if (has_hba1c) {
+        if (sex === 0) { 
+            logOdds = -4.288225 + 0.8997391 * age_term - 0.4422749 * sbp_low + 0.3378691 * sbp_high
+                + 0.681284 * dm_val + 0.5886005 * smoke_val - 0.0148657 * bmi_low + 0.2958374 * bmi_high
+                + 0.73447 * egfr_low + 0.05926 * egfr_high + 0.3543475 * bp_med_val
+                - 0.1002139 * bp_med_val * sbp_high - 0.0878765 * age_term * sbp_high
+                - 0.303684 * age_term * dm_val - 0.1178943 * age_term * smoke_val
+                - 0.008345 * age_term * bmi_high - 0.1912183 * age_term * egfr_low
+                + 0.1856442 * hba1c_term * dm_val + 0.1833083 * hba1c_term * (1 - dm_val);
+        } else { 
+            logOdds = -3.961954 + 0.911787 * age_term - 0.6568071 * sbp_low + 0.3524645 * sbp_high
+                + 0.5849752 * dm_val + 0.5014014 * smoke_val - 0.0512352 * bmi_low + 0.365294 * bmi_high
+                + 0.6892219 * egfr_low + 0.0292377 * egfr_high + 0.3038296 * bp_med_val
+                - 0.0515032 * bp_med_val * sbp_high - 0.1262343 * age_term * sbp_high
+                - 0.2449514 * age_term * dm_val - 0.1392217 * age_term * smoke_val
+                + 0.0009592 * age_term * bmi_high - 0.1917105 * age_term * egfr_low
+                + 0.1652857 * hba1c_term * dm_val + 0.1505859 * hba1c_term * (1 - dm_val);
+        }
+    } else {
+        if (sex === 0) { 
+            logOdds = -4.310409 + 0.8998235 * age_term - 0.4559771 * sbp_low + 0.3576505 * sbp_high
+                + 1.038346 * dm_val + 0.583916 * smoke_val - 0.0072294 * bmi_low + 0.2997706 * bmi_high
+                + 0.7451638 * egfr_low + 0.0557087 * egfr_high + 0.3534442 * bp_med_val
+                - 0.0981511 * bp_med_val * sbp_high - 0.0946663 * age_term * sbp_high
+                - 0.3581041 * age_term * dm_val - 0.1159453 * age_term * smoke_val
+                - 0.003878 * age_term * bmi_high - 0.1884289 * age_term * egfr_low;
+        } else { 
+            logOdds = -3.946391 + 0.8972642 * age_term - 0.6811466 * sbp_low + 0.3634461 * sbp_high
+                + 0.923776 * dm_val + 0.5023736 * smoke_val - 0.0485841 * bmi_low + 0.3726929 * bmi_high
+                + 0.6926917 * egfr_low + 0.0251827 * egfr_high + 0.2980922 * bp_med_val
+                - 0.0497731 * bp_med_val * sbp_high - 0.1289201 * age_term * sbp_high
+                - 0.3040924 * age_term * dm_val - 0.1401688 * age_term * smoke_val
+                + 0.0068126 * age_term * bmi_high - 0.1797778 * age_term * egfr_low;
+        }
+    }
+    return (Math.exp(logOdds) / (1 + Math.exp(logOdds))) * 100;
   }
 </script>
 </body>
 </html>
 """
 
-components.html(html_code, height=1400, scrolling=True)
+components.html(html_code, height=1500, scrolling=True)
