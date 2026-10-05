@@ -201,7 +201,8 @@ html_code = """
       <label class="check-label"><input type="checkbox" id="bp_med"> 降圧薬服用</label>
       <label class="check-label"><input type="checkbox" id="statin" onchange="handleStatinChange(this)"> スタチン内服</label>
       <label class="check-label"><input type="checkbox" id="dm"> 糖尿病</label>
-      <label class="check-label"><input type="checkbox" id="smoke"> 喫煙者</label>
+      <!-- 喫煙チェックボックスにもイベントリスナーを追加 -->
+      <label class="check-label"><input type="checkbox" id="smoke" onchange="handleSmokeChange(this)"> 喫煙者</label>
     </div>
 
     <div class="optional-group">
@@ -277,9 +278,10 @@ html_code = """
 <script>
   let baseCalcRisk = 0;
 
-  // 初期読み込み時にスタチンの状態をチェック
+  // 初期読み込み時にスタチンと喫煙の状態をチェック
   document.addEventListener("DOMContentLoaded", function() {
     handleStatinChange(document.getElementById('statin'));
+    handleSmokeChange(document.getElementById('smoke'));
   });
 
   // スタチン内服のチェック変更時にシミュレーションボタンを制御
@@ -287,11 +289,29 @@ html_code = """
     let simBtn = document.getElementById('lbl-statin');
     let simInput = simBtn.querySelector('input');
     if (el.checked) {
-      simInput.checked = false; // シミュレーションのチェックを外す
-      simInput.disabled = true; // クリック不可にする
+      simInput.checked = false; 
+      simInput.disabled = true; 
       simBtn.classList.remove('active');
       simBtn.classList.add('disabled');
       simBtn.title = "すでにスタチンを内服しているため選択できません";
+    } else {
+      simInput.disabled = false;
+      simBtn.classList.remove('disabled');
+      simBtn.title = "";
+    }
+  }
+
+  // 喫煙者のチェック変更時に「禁煙する」ボタンを制御
+  function handleSmokeChange(el) {
+    let simBtn = document.getElementById('lbl-quit');
+    let simInput = simBtn.querySelector('input');
+    if (!el.checked) {
+      // 吸っていない場合は禁煙できないのでグレーアウト
+      simInput.checked = false; 
+      simInput.disabled = true; 
+      simBtn.classList.remove('active');
+      simBtn.classList.add('disabled');
+      simBtn.title = "喫煙者ではないため選択できません";
     } else {
       simInput.disabled = false;
       simBtn.classList.remove('disabled');
