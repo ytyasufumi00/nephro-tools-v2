@@ -135,6 +135,12 @@ st.page_link("pages/12_KFRE_yosoku.py",
     use_container_width=True
 )
 
+st.page_link("pages/13_PREVENT_yosoku.py", 
+    label="**CKM症候群　心血管リスクの予測", 
+    icon="🧂", 
+    use_container_width=True
+)
+
 st.markdown("""
 <br>
 <small style="color:gray">
