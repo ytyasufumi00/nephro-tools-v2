@@ -48,10 +48,15 @@ html_code = """
   .optional-group { border-left: 4px solid var(--gold-accent); background: #fffbf0; padding: 15px; margin-bottom: 25px; border-radius: 0 6px 6px 0; }
   .optional-title { font-size: 0.85em; color: #856404; font-weight: bold; margin-bottom: 10px; }
 
+  /* ツールチップ基本（上向き） */
   .tooltip-icon { display: inline-flex; justify-content: center; align-items: center; width: 18px; height: 18px; background: var(--stone-gray); color: white; border-radius: 50%; font-size: 12px; font-family: sans-serif; margin-left: 5px; cursor: help; vertical-align: middle; position: relative; font-weight: normal; letter-spacing: normal; text-shadow: none; line-height: 1; }
-  .tooltip-text { visibility: hidden; width: 260px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -130px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; line-height: 1.5; white-space: normal; letter-spacing: normal; text-shadow: none; }
+  .tooltip-text { visibility: hidden; width: 320px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 12px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -160px; opacity: 0; transition: opacity 0.3s; font-size: 14px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; line-height: 1.5; white-space: normal; letter-spacing: normal; text-shadow: none; }
   .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
   .tooltip-icon:hover .tooltip-text { visibility: visible; opacity: 1; }
+  
+  /* ツールチップ下向き（見切れ防止用） */
+  .tooltip-down .tooltip-text { bottom: auto; top: 130%; }
+  .tooltip-down .tooltip-text::after { top: auto; bottom: 100%; border-color: transparent transparent var(--indigo-deep) transparent; }
 
   button.calc-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, var(--indigo-deep), #0f1926); color: white; border: none; border-radius: 6px; font-size: 1.2em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 var(--stone-gray); margin-bottom: 20px; transition: all 0.1s; letter-spacing: 0.1em; }
   button.calc-btn:active { transform: translateY(4px); box-shadow: 0 0 0 var(--stone-gray); }
@@ -104,7 +109,8 @@ html_code = """
     </svg>
     <h2>
       CKM症候群
-      <span class="tooltip-icon">?<span class="tooltip-text">心臓・血管（Cardiovascular）、腎臓（Kidney）、代謝（Metabolic）の頭文字をとった概念です。肥満や糖尿病、腎機能の低下が連鎖し、命に関わる心不全や心筋梗塞のリスクを加速度的に高める状態を指します。</span></span>
+      <!-- tooltip-downクラスを追加して下向きに表示 -->
+      <span class="tooltip-icon tooltip-down">?<span class="tooltip-text">心臓・血管（Cardiovascular）、腎臓（Kidney）、代謝（Metabolic）の頭文字をとった概念です。肥満や糖尿病、腎機能の低下が連鎖し、命に関わる心不全や心筋梗塞のリスクを加速度的に高める状態を指します。</span></span>
       <br>10年リスク予測
     </h2>
     <div class="sub-title">Powered by AHA PREVENT Equations (信州上田マッピング ver.)</div>
@@ -177,7 +183,7 @@ html_code = """
       <div class="big-result">
         <div style="font-weight:bold; color:var(--stone-gray); font-size: 1.1em;">
           10年以内の総CVD発症確率
-          <span class="tooltip-icon" style="background:var(--indigo-deep);">?<span class="tooltip-text">今後10年の間に、心筋梗塞、脳卒中、または心不全のいずれかを初めて発症する確率です。（CVD＝心血管疾患）</span></span>
+          <span class="tooltip-icon tooltip-down" style="background:var(--indigo-deep);">?<span class="tooltip-text">今後10年の間に、心筋梗塞、脳卒中、または心不全のいずれかを初めて発症する確率です。（CVD＝心血管疾患）</span></span>
         </div>
         <div class="big-number" id="risk-val">--<span class="big-unit">%</span></div>
         <div class="hf-result">⚠ うち、心不全(HF)単独の発症確率: <span class="hf-val" id="hf-risk-val">--</span> %</div>
@@ -285,7 +291,7 @@ html_code = """
       let hba1cStr = document.getElementById('hba1c').value;
       
       if(isNaN(age) || isNaN(sbp) || isNaN(egfr) || isNaN(tc) || isNaN(hdl)) {
-        errorDiv.innerHTML = "⚠️ 必須項目（年齢〜HDL）をすべて入力してください。";
+        errorDiv.innerHTML = "⚠️️ 必須項目（年齢〜HDL）をすべて入力してください。";
         errorDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
         return;
       }
