@@ -25,9 +25,13 @@ html_code = """
     --bg-color: #f4f6f8;
   }
   body { font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif; background-color: var(--bg-color); color: #333; margin: 0; padding: 20px; }
-  .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e0e4e8; }
   
-  .header-area { background: linear-gradient(135deg, var(--indigo-deep), #2c425e); padding: 35px 20px 25px; text-align: center; color: white; position: relative; border-bottom: 6px solid var(--stone-gray); }
+  /* overflow: hidden; を削除して見切れを防止 */
+  .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); border: 1px solid #e0e4e8; }
+  
+  /* 角丸を維持するためにヘッダー上部のみ丸める */
+  .header-area { background: linear-gradient(135deg, var(--indigo-deep), #2c425e); padding: 35px 20px 25px; text-align: center; color: white; position: relative; border-bottom: 6px solid var(--stone-gray); border-radius: 11px 11px 0 0; }
+  
   .gate-svg { width: 120px; height: auto; margin-bottom: 15px; fill: var(--stone-gray); filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5)); }
   h2 { font-family: "HGS 行書B", "HGP行書B", "HG行書B", serif; margin: 0; font-size: 1.8em; letter-spacing: 0.05em; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); line-height: 1.4; }
   .sub-title { font-size: 0.9em; margin-top: 10px; color: #cbd5e1; font-family: sans-serif; }
@@ -48,13 +52,23 @@ html_code = """
   .optional-group { border-left: 4px solid var(--gold-accent); background: #fffbf0; padding: 15px; margin-bottom: 25px; border-radius: 0 6px 6px 0; }
   .optional-title { font-size: 0.85em; color: #856404; font-weight: bold; margin-bottom: 10px; }
 
-  /* ツールチップ基本（上向き） */
+  /* --- 改良版ツールチップ --- */
   .tooltip-icon { display: inline-flex; justify-content: center; align-items: center; width: 18px; height: 18px; background: var(--stone-gray); color: white; border-radius: 50%; font-size: 12px; font-family: sans-serif; margin-left: 5px; cursor: help; vertical-align: middle; position: relative; font-weight: normal; letter-spacing: normal; text-shadow: none; line-height: 1; }
-  .tooltip-text { visibility: hidden; width: 320px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 12px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -160px; opacity: 0; transition: opacity 0.3s; font-size: 14px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; line-height: 1.5; white-space: normal; letter-spacing: normal; text-shadow: none; }
-  .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
+  
+  /* 基本（中央配置） */
+  .tooltip-text { visibility: hidden; width: 320px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 12px; position: absolute; z-index: 100; bottom: 130%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; font-size: 14px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; line-height: 1.5; white-space: normal; letter-spacing: normal; text-shadow: none; }
+  .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
   .tooltip-icon:hover .tooltip-text { visibility: visible; opacity: 1; }
   
-  /* ツールチップ下向き（見切れ防止用） */
+  /* 左列用（吹き出しを右にズラす） */
+  .tooltip-left .tooltip-text { left: -10px; transform: none; }
+  .tooltip-left .tooltip-text::after { left: 19px; transform: none; }
+
+  /* 右列用（吹き出しを左にズラす） */
+  .tooltip-right .tooltip-text { left: auto; right: -10px; transform: none; }
+  .tooltip-right .tooltip-text::after { left: auto; right: 19px; transform: none; }
+
+  /* 下向き（タイトルなど） */
   .tooltip-down .tooltip-text { bottom: auto; top: 130%; }
   .tooltip-down .tooltip-text::after { top: auto; bottom: 100%; border-color: transparent transparent var(--indigo-deep) transparent; }
 
@@ -109,7 +123,6 @@ html_code = """
     </svg>
     <h2>
       CKM症候群
-      <!-- tooltip-downクラスを追加して下向きに表示 -->
       <span class="tooltip-icon tooltip-down">?<span class="tooltip-text">心臓・血管（Cardiovascular）、腎臓（Kidney）、代謝（Metabolic）の頭文字をとった概念です。肥満や糖尿病、腎機能の低下が連鎖し、命に関わる心不全や心筋梗塞のリスクを加速度的に高める状態を指します。</span></span>
       <br>10年リスク予測
     </h2>
@@ -124,17 +137,20 @@ html_code = """
       <div class="form-group"><label>年齢 (30-79歳)</label><input type="number" id="age" value="55"></div>
       <div class="form-group"><label>性別</label><select id="sex"><option value="1">男性</option><option value="0">女性</option></select></div>
       <div class="form-group"><label>収縮期血圧 (mmHg)</label><input type="number" id="sbp" value="135"></div>
+      
       <div class="form-group">
         <label>eGFR (mL/min/1.73m²)
-          <span class="tooltip-icon">?<span class="tooltip-text">推算糸球体濾過量。腎臓が老廃物を排泄する能力を示す指標です。心血管イベントや心不全のリスクに強く影響します。</span></span>
+          <span class="tooltip-icon tooltip-right">?<span class="tooltip-text">推算糸球体濾過量。腎臓が老廃物を排泄する能力を示す指標です。心血管イベントや心不全のリスクに強く影響します。</span></span>
         </label>
         <input type="number" id="egfr" value="65">
       </div>
+      
       <div class="form-group"><label>総コレステロール (mg/dL)</label><input type="number" id="tc" value="220"></div>
       <div class="form-group"><label>HDLコレステロール (mg/dL)</label><input type="number" id="hdl" value="45"></div>
+      
       <div class="form-group">
         <label>BMI (kg/m²)
-          <span class="tooltip-icon">?<span class="tooltip-text">Body Mass Index（体格指数）。25以上の過体重はCKM Stage 1に分類され、30以上の高度肥満は心不全単独の発症リスクを指数関数的に押し上げます。</span></span>
+          <span class="tooltip-icon tooltip-left">?<span class="tooltip-text">Body Mass Index（体格指数）。25以上の過体重はCKM Stage 1に分類され、30以上の高度肥満は心不全単独の発症リスクを指数関数的に押し上げます。</span></span>
         </label>
         <input type="number" id="bmi" value="26">
       </div>
@@ -152,13 +168,13 @@ html_code = """
       <div class="grid-2col" style="margin-bottom:0;">
         <div class="form-group" style="margin-bottom:0;">
           <label>UACR (尿中アルブミン mg/gCr)
-            <span class="tooltip-icon">?<span class="tooltip-text">腎臓の微小なダメージを早期に捉える指標です。入力するとより精度の高い「UACR Add-onモデル」に自動で切り替わります。</span></span>
+            <span class="tooltip-icon tooltip-left">?<span class="tooltip-text">腎臓の微小なダメージを早期に捉える指標です。入力するとより精度の高い「UACR Add-onモデル」に自動で切り替わります。</span></span>
           </label>
           <input type="number" id="uacr" placeholder="未入力でベースモデル">
         </div>
         <div class="form-group" style="margin-bottom:0;">
           <label>HbA1c (%)
-            <span class="tooltip-icon">?<span class="tooltip-text">入力すると糖尿病関連の予測精度が向上する「HbA1c Add-onモデル」に自動で切り替わります。</span></span>
+            <span class="tooltip-icon tooltip-right">?<span class="tooltip-text">入力すると糖尿病関連の予測精度が向上する「HbA1c Add-onモデル」に自動で切り替わります。</span></span>
           </label>
           <input type="number" id="hba1c" placeholder="未入力でベースモデル">
         </div>
@@ -291,7 +307,7 @@ html_code = """
       let hba1cStr = document.getElementById('hba1c').value;
       
       if(isNaN(age) || isNaN(sbp) || isNaN(egfr) || isNaN(tc) || isNaN(hdl)) {
-        errorDiv.innerHTML = "⚠️️ 必須項目（年齢〜HDL）をすべて入力してください。";
+        errorDiv.innerHTML = "⚠ 必須項目（年齢〜HDL）をすべて入力してください。";
         errorDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
         return;
       }
