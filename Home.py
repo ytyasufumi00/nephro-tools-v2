@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
+# ページ設定
 st.set_page_config(page_title="信州上田 CKM症候群・心血管リスク予測 (PREVENT)", layout="wide")
 
 html_code = """
@@ -28,8 +29,8 @@ html_code = """
   
   .header-area { background: linear-gradient(135deg, var(--indigo-deep), #2c425e); padding: 35px 20px 25px; text-align: center; color: white; position: relative; border-bottom: 6px solid var(--stone-gray); }
   .gate-svg { width: 120px; height: auto; margin-bottom: 15px; fill: var(--stone-gray); filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5)); }
-  h2 { font-family: "HGS 行書B", "HGP行書B", "HG行書B", serif; margin: 0; font-size: 1.8em; letter-spacing: 0.05em; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
-  .sub-title { font-size: 0.9em; margin-top: 8px; color: #cbd5e1; font-family: sans-serif; }
+  h2 { font-family: "HGS 行書B", "HGP行書B", "HG行書B", serif; margin: 0; font-size: 1.8em; letter-spacing: 0.05em; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); line-height: 1.4; }
+  .sub-title { font-size: 0.9em; margin-top: 10px; color: #cbd5e1; font-family: sans-serif; }
   .endpoint-label { display: inline-block; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 0.8em; margin-top: 15px; border: 1px solid rgba(255,255,255,0.3); }
 
   .content-body { padding: 30px; font-family: sans-serif; }
@@ -47,8 +48,8 @@ html_code = """
   .optional-group { border-left: 4px solid var(--gold-accent); background: #fffbf0; padding: 15px; margin-bottom: 25px; border-radius: 0 6px 6px 0; }
   .optional-title { font-size: 0.85em; color: #856404; font-weight: bold; margin-bottom: 10px; }
 
-  .tooltip-icon { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: var(--stone-gray); color: white; border-radius: 50%; font-size: 11px; margin-left: 5px; cursor: help; vertical-align: middle; position: relative; }
-  .tooltip-text { visibility: hidden; width: 220px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none; line-height: 1.4; }
+  .tooltip-icon { display: inline-flex; justify-content: center; align-items: center; width: 18px; height: 18px; background: var(--stone-gray); color: white; border-radius: 50%; font-size: 12px; font-family: sans-serif; margin-left: 5px; cursor: help; vertical-align: middle; position: relative; font-weight: normal; letter-spacing: normal; text-shadow: none; line-height: 1; }
+  .tooltip-text { visibility: hidden; width: 260px; background-color: var(--indigo-deep); color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; bottom: 130%; left: 50%; margin-left: -130px; opacity: 0; transition: opacity 0.3s; font-size: 12px; font-weight: normal; box-shadow: 0 4px 10px rgba(0,0,0,0.5); pointer-events: none; line-height: 1.5; white-space: normal; letter-spacing: normal; text-shadow: none; }
   .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--indigo-deep) transparent transparent transparent; }
   .tooltip-icon:hover .tooltip-text { visibility: visible; opacity: 1; }
 
@@ -101,8 +102,12 @@ html_code = """
       <path d="M40,25 L100,5 L160,25 Z" />
       <path d="M45,45 L100,35 L155,45 Z" />
     </svg>
-    <h2>PREVENT 10年リスク予測</h2>
-    <div class="sub-title">信州上田 CKM症候群マッピング ver.</div>
+    <h2>
+      CKM症候群
+      <span class="tooltip-icon">?<span class="tooltip-text">心臓・血管（Cardiovascular）、腎臓（Kidney）、代謝（Metabolic）の頭文字をとった概念です。肥満や糖尿病、腎機能の低下が連鎖し、命に関わる心不全や心筋梗塞のリスクを加速度的に高める状態を指します。</span></span>
+      <br>10年リスク予測
+    </h2>
+    <div class="sub-title">Powered by AHA PREVENT Equations (信州上田マッピング ver.)</div>
     <div class="endpoint-label">🎯 予測エンドポイント：心筋梗塞・脳卒中・<b>心不全</b></div>
   </div>
 
@@ -170,9 +175,12 @@ html_code = """
       </div>
 
       <div class="big-result">
-        <div style="font-weight:bold; color:var(--stone-gray);">10年以内の総CVD発症確率</div>
+        <div style="font-weight:bold; color:var(--stone-gray); font-size: 1.1em;">
+          10年以内の総CVD発症確率
+          <span class="tooltip-icon" style="background:var(--indigo-deep);">?<span class="tooltip-text">今後10年の間に、心筋梗塞、脳卒中、または心不全のいずれかを初めて発症する確率です。（CVD＝心血管疾患）</span></span>
+        </div>
         <div class="big-number" id="risk-val">--<span class="big-unit">%</span></div>
-        <div class="hf-result">⚠️️ うち、心不全(HF)単独の発症確率: <span class="hf-val" id="hf-risk-val">--</span> %</div>
+        <div class="hf-result">⚠ うち、心不全(HF)単独の発症確率: <span class="hf-val" id="hf-risk-val">--</span> %</div>
         <div id="model-type" style="font-size:0.8em; color:#94a3b8; margin-top:5px;"></div>
       </div>
 
@@ -333,13 +341,15 @@ html_code = """
 
     let checkedSims = Array.from(document.querySelectorAll('.sim-btn input:checked')).map(inp => inp.value);
 
+    // AHAモデルのスタチン相互作用項の統計アーティファクトを回避するため、変数代入ではなく相対リスク低下(RRR)でシミュレーションする
     if (checkedSims.includes('quit')) smoke = false;
-    if (checkedSims.includes('statin')) { statin = true; tc = Math.max(130, tc - 40); }
     if (checkedSims.includes('weight')) { bmi = Math.min(bmi, 24.9); sbp = Math.max(110, sbp - 5); }
 
     let simRisk = executePredictEquation(age, sex, sbp, bp_med, egfr, tc, hdl, statin, dm, smoke, uacrStr, hba1cStr);
     let simHfRisk = executeHFPredictEquation(age, sex, sbp, bp_med, egfr, bmi, dm, smoke, uacrStr, hba1cStr);
 
+    // スタチンのCVDリスク低下効果 (RRR 25%を乗算)
+    if (checkedSims.includes('statin')) { simRisk *= 0.75; }
     if (checkedSims.includes('sglt2')) { simRisk *= 0.75; simHfRisk *= 0.75; }
     if (checkedSims.includes('mra')) { simRisk *= 0.85; simHfRisk *= 0.85; }
 
@@ -479,8 +489,10 @@ html_code = """
                 - 0.0895067 * age_term * smoke_val - 0.1543702 * age_term * egfr_low;
         }
     }
+
     document.getElementById('model-type').innerText = modelText;
-    return (Math.exp(logOdds) / (1 + Math.exp(logOdds))) * 100;
+    let risk = (Math.exp(logOdds) / (1 + Math.exp(logOdds))) * 100;
+    return Math.max(0.1, Math.min(risk, 99.9));
   }
 
   // --- PREVENT Heart Failure (心不全単独モデル) ---
