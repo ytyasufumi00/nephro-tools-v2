@@ -594,4 +594,4 @@ html_code = """
 </html>
 """
 
-components.html(html_code, height=1500, scrolling=True)
+components.html(html_code, height=1800, scrolling=False)
